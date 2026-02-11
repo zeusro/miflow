@@ -3,6 +3,7 @@
 #
 # Binaries for programs and plugins
 /m
+/xiaomusic
 /bin/
 /dist/
 *.exe
