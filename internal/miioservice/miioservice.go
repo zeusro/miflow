@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,26 +17,32 @@ import (
 	"time"
 
 	"github.com/zeusro/miflow/internal/miaccount"
+	"github.com/zeusro/miflow/internal/mihomeapi"
 )
 
-const sidXiaomiIO = "xiaomiio"
-
-// Service implements MiIO/MIoT API (xiaomiio).
+// Service implements MiIO/MIoT API via ha.api.io.mi.com (OAuth 2.0).
+// Ref: https://github.com/XiaoMi/ha_xiaomi_home
 type Service struct {
-	Account *miaccount.Account
-	Server  string
+	ha *mihomeapi.Service
 }
 
-// New creates MiIO service. Region can be "" or "cn" for China.
-func New(account *miaccount.Account, region string) *Service {
-	server := "https://api.io.mi.com/app"
-	if region != "" && region != "cn" {
-		server = "https://" + region + ".api.io.mi.com/app"
+// New creates MiIO service with OAuth token. Token is loaded from tokenPath if empty.
+func New(token *miaccount.OAuthToken, tokenPath string) (*Service, error) {
+	if token == nil {
+		store := &miaccount.TokenStore{Path: tokenPath}
+		token = store.LoadOAuth()
 	}
-	return &Service{Account: account, Server: server}
+	if token == nil || !token.IsValid() {
+		return nil, fmt.Errorf("no valid OAuth token, run 'm login' first")
+	}
+	ha, err := mihomeapi.New(token, tokenPath)
+	if err != nil {
+		return nil, err
+	}
+	return &Service{ha: ha}, nil
 }
 
-// SignNonce computes key for request signing: base64(sha256(b64decode(ssecurity)+b64decode(nonce)))
+// SignNonce computes key for request signing (used by MiotDecode).
 func SignNonce(ssecurity, nonce string) (string, error) {
 	sb, err := base64.StdEncoding.DecodeString(ssecurity)
 	if err != nil {
@@ -51,7 +56,7 @@ func SignNonce(ssecurity, nonce string) (string, error) {
 	return base64.StdEncoding.EncodeToString(h[:]), nil
 }
 
-// SignData builds _nonce, data, signature for MiIO request.
+// SignData builds _nonce, data, signature for MiIO request (legacy, kept for decode).
 func SignData(uri, dataStr, ssecurity string) (map[string]string, error) {
 	nonceBytes := make([]byte, 12)
 	rand.Read(nonceBytes[:8])
@@ -73,132 +78,102 @@ func SignData(uri, dataStr, ssecurity string) (map[string]string, error) {
 	}, nil
 }
 
-// MiIORequest sends signed request to MiIO server.
+// MiIORequest: raw MiIO not supported in OAuth mode (ha.api.io.mi.com uses different API).
 func (s *Service) MiIORequest(uri string, data interface{}) (map[string]interface{}, error) {
-	if _, ok := s.Account.Token.Services[sidXiaomiIO]; !ok {
-		if err := s.Account.Login(sidXiaomiIO); err != nil {
-			return nil, err
+	return nil, fmt.Errorf("raw MiIO (%s) not supported in OAuth mode, use MIoT commands", uri)
+}
+
+// HomeRequest: legacy home/rpc not supported in OAuth mode.
+func (s *Service) HomeRequest(did, method string, params interface{}) (map[string]interface{}, error) {
+	return nil, fmt.Errorf("legacy home/rpc not supported in OAuth mode")
+}
+
+// HomeGetProps returns property values. In OAuth mode, uses MIoT get_prop.
+func (s *Service) HomeGetProps(did string, props []string) ([]interface{}, error) {
+	// Map legacy prop names to siid-piid would need device spec; return nil for now
+	return nil, fmt.Errorf("legacy get_prop not supported, use MIoT format (siid-piid)")
+}
+
+// HomeSetProp: legacy not supported.
+func (s *Service) HomeSetProp(did, prop string, value interface{}) (interface{}, error) {
+	return nil, fmt.Errorf("legacy set_prop not supported, use MIoT format")
+}
+
+// MiotRequest calls miotspec prop/get, prop/set, or action via HA API.
+func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]interface{}, error) {
+	switch cmd {
+	case "prop/get":
+		pm, ok := toParamsArray(params)
+		if !ok {
+			return nil, fmt.Errorf("prop/get expects params array")
 		}
-	}
-	ssecurity := s.Account.Token.Services[sidXiaomiIO][0]
-	var dataStr string
-	if data != nil {
-		b, err := json.Marshal(data)
+		res, err := s.ha.GetProps(pm)
 		if err != nil {
 			return nil, err
 		}
-		dataStr = string(b)
-	}
-	params, err := SignData(uri, dataStr, ssecurity)
-	if err != nil {
-		return nil, err
-	}
-	form := url.Values{}
-	form.Set("_nonce", params["_nonce"])
-	form.Set("data", params["data"])
-	form.Set("signature", params["signature"])
-	req, err := http.NewRequest("POST", s.Server+uri, strings.NewReader(form.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("User-Agent", "iOS-14.4-6.0.103-iPhone12,3--D7744744F7AF32F0544445285880DD63E47D9BE9-8816080-84A3F44E137B71AE-iPhone")
-	req.Header.Set("x-xiaomi-protocal-flag-cli", "PROTOCAL-HTTP2")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(&http.Cookie{Name: "PassportDeviceId", Value: s.Account.Token.DeviceID})
-	req.AddCookie(&http.Cookie{Name: "userId", Value: s.Account.Token.UserID})
-	req.AddCookie(&http.Cookie{Name: "serviceToken", Value: s.Account.Token.Services[sidXiaomiIO][1]})
-	resp, err := s.Account.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var out map[string]interface{}
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, err
-	}
-	if result, ok := out["result"]; ok {
-		if m, ok := result.(map[string]interface{}); ok {
-			return m, nil
+		return res, nil
+	case "prop/set":
+		pm, ok := toParamsArray(params)
+		if !ok {
+			return nil, fmt.Errorf("prop/set expects params array")
 		}
-		return nil, fmt.Errorf("unexpected result: %v", result)
-	}
-	return nil, fmt.Errorf("request error: %s", string(raw))
-}
-
-// HomeRequest calls /home/rpc/{did}.
-func (s *Service) HomeRequest(did, method string, params interface{}) (map[string]interface{}, error) {
-	return s.MiIORequest("/home/rpc/"+did, map[string]interface{}{
-		"id":       1,
-		"method":  method,
-		"params":  params,
-		"accessKey": "IOS00026747c5acafc2",
-	})
-}
-
-// HomeGetProps returns property values.
-func (s *Service) HomeGetProps(did string, props []string) ([]interface{}, error) {
-	r, err := s.HomeRequest(did, "get_prop", props)
-	if err != nil {
-		return nil, err
-	}
-	var out []interface{}
-	for _, p := range props {
-		if v, ok := r[p]; ok {
-			out = append(out, v)
-		} else {
-			out = append(out, nil)
+		_, err := s.ha.SetProps(pm)
+		if err != nil {
+			return nil, err
 		}
-	}
-	return out, nil
-}
-
-// HomeSetProp sets one property.
-func (s *Service) HomeSetProp(did, prop string, value interface{}) (interface{}, error) {
-	val := value
-	if _, ok := value.([]interface{}); !ok {
-		val = []interface{}{value}
-	}
-	r, err := s.HomeRequest(did, "set_"+prop, val)
-	if err != nil {
-		return nil, err
-	}
-	if len(r) > 0 {
-		return r["0"], nil
-	}
-	return "ok", nil
-}
-
-// MiotRequest calls /miotspec/{cmd}.
-func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]interface{}, error) {
-	r, err := s.MiIORequest("/miotspec/"+cmd, map[string]interface{}{"params": params})
-	if err != nil {
-		return nil, err
-	}
-	// result is array
-	if arr, ok := r["result"].([]interface{}); ok {
-		out := make([]map[string]interface{}, 0, len(arr))
-		for _, it := range arr {
-			if m, ok := it.(map[string]interface{}); ok {
-				out = append(out, m)
-			}
+		return nil, nil
+	case "action":
+		p, ok := params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("action expects params object with did, siid, aiid, in")
 		}
-		return out, nil
+		did, _ := p["did"].(string)
+		siid, _ := toInt(p["siid"])
+		aiid, _ := toInt(p["aiid"])
+		inRaw, _ := p["in"].([]interface{})
+		_, err := s.ha.Action(did, siid, aiid, inRaw)
+		if err != nil {
+			return nil, err
+		}
+		return []map[string]interface{}{{"code": float64(0)}}, nil
+	default:
+		return nil, fmt.Errorf("unknown miot cmd: %s", cmd)
 	}
-	return nil, fmt.Errorf("miot result not array: %v", r)
 }
 
-// MiotGetProps gets MIoT properties. iids are [siid, piid] pairs.
+func toParamsArray(p interface{}) ([]map[string]interface{}, bool) {
+	arr, ok := p.([]interface{})
+	if !ok {
+		return nil, false
+	}
+	out := make([]map[string]interface{}, len(arr))
+	for i, it := range arr {
+		m, ok := it.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		out[i] = m
+	}
+	return out, true
+}
+
+func toInt(v interface{}) (int, bool) {
+	switch x := v.(type) {
+	case float64:
+		return int(x), true
+	case int:
+		return x, true
+	}
+	return 0, false
+}
+
+// MiotGetProps gets MIoT properties.
 func (s *Service) MiotGetProps(did string, iids [][2]int) ([]interface{}, error) {
 	params := make([]map[string]interface{}, len(iids))
 	for i, iid := range iids {
 		params[i] = map[string]interface{}{"did": did, "siid": iid[0], "piid": iid[1]}
 	}
-	result, err := s.MiotRequest("prop/get", params)
+	result, err := s.ha.GetProps(params)
 	if err != nil {
 		return nil, err
 	}
@@ -213,13 +188,13 @@ func (s *Service) MiotGetProps(did string, iids [][2]int) ([]interface{}, error)
 	return out, nil
 }
 
-// MiotSetProps sets MIoT properties. props are [siid, piid, value].
+// MiotSetProps sets MIoT properties.
 func (s *Service) MiotSetProps(did string, props [][3]interface{}) ([]int, error) {
 	params := make([]map[string]interface{}, len(props))
 	for i, p := range props {
 		params[i] = map[string]interface{}{"did": did, "siid": p[0], "piid": p[1], "value": p[2]}
 	}
-	result, err := s.MiotRequest("prop/set", params)
+	result, err := s.ha.SetProps(params)
 	if err != nil {
 		return nil, err
 	}
@@ -233,57 +208,19 @@ func (s *Service) MiotSetProps(did string, props [][3]interface{}) ([]int, error
 
 // MiotAction runs a MIoT action.
 func (s *Service) MiotAction(did string, siid, aiid int, args []interface{}) (int, error) {
-	result, err := s.MiotRequest("action", map[string]interface{}{
-		"did":  did,
-		"siid": siid,
-		"aiid": aiid,
-		"in":   args,
-	})
-	if err != nil || len(result) == 0 {
+	_, err := s.ha.Action(did, siid, aiid, args)
+	if err != nil {
 		return -1, err
 	}
-	code, _ := result[0]["code"].(float64)
-	return int(code), nil
+	return 0, nil
 }
 
-// DeviceList returns devices. name: "" for all, "full" for full info, or keyword; getVirtualModel, getHuamiDevices.
+// DeviceList returns devices.
 func (s *Service) DeviceList(name string, getVirtualModel bool, getHuamiDevices int) ([]map[string]interface{}, error) {
-	r, err := s.MiIORequest("/home/device_list", map[string]interface{}{
-		"getVirtualModel": getVirtualModel,
-		"getHuamiDevices": getHuamiDevices,
-	})
-	if err != nil {
-		return nil, err
-	}
-	list, _ := r["list"].([]interface{})
-	out := make([]map[string]interface{}, 0, len(list))
-	for _, it := range list {
-		m, ok := it.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if name == "full" {
-			out = append(out, m)
-			continue
-		}
-		if name != "" {
-			did, _ := m["did"].(string)
-			n, _ := m["name"].(string)
-			if !strings.Contains(did, name) && !strings.Contains(n, name) {
-				continue
-			}
-		}
-		out = append(out, map[string]interface{}{
-			"name":   m["name"],
-			"model":  m["model"],
-			"did":    m["did"],
-			"token":  m["token"],
-		})
-	}
-	return out, nil
+	return s.ha.DeviceList(name, getVirtualModel, getHuamiDevices)
 }
 
-// MiotSpec fetches MIoT spec for type (model keyword or URN). format: "text", "python", "json".
+// MiotSpec fetches MIoT spec from miot-spec.org (public, no auth).
 func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 	specsPath := filepath.Join(os.TempDir(), "miservice_miot_specs.json")
 	allSpecs := make(map[string]string)
@@ -291,7 +228,7 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 		json.Unmarshal(data, &allSpecs)
 	}
 	if len(allSpecs) == 0 {
-		resp, err := s.Account.Client.Get("http://miot-spec.org/miot-spec-v2/instances?status=all")
+		resp, err := http.DefaultClient.Get("http://miot-spec.org/miot-spec-v2/instances?status=all")
 		if err != nil {
 			return nil, err
 		}
@@ -310,7 +247,6 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 		}
 		os.WriteFile(specsPath, mustJSON(allSpecs), 0644)
 	}
-	// filter by typ
 	if typ != "" && !strings.HasPrefix(typ, "urn:") {
 		filtered := make(map[string]string)
 		for m, t := range allSpecs {
@@ -330,7 +266,6 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 	if typ == "" {
 		return allSpecs, nil
 	}
-	// fetch instance spec
 	if !strings.HasPrefix(typ, "urn:") {
 		for _, t := range allSpecs {
 			if t == typ || strings.Contains(t, typ) {
@@ -340,7 +275,7 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 		}
 	}
 	reqURL := "http://miot-spec.org/miot-spec-v2/instance?type=" + url.QueryEscape(typ)
-	resp, err := s.Account.Client.Get(reqURL)
+	resp, err := http.DefaultClient.Get(reqURL)
 	if err != nil {
 		return nil, err
 	}
@@ -360,10 +295,10 @@ func mustJSON(v interface{}) []byte {
 	return b
 }
 
-func formatMiotSpecText(result map[string]interface{}, format, url string) string {
+func formatMiotSpecText(result map[string]interface{}, format, reqURL string) string {
 	var buf bytes.Buffer
 	buf.WriteString("# Generated by github.com/zeusro/miflow\n# ")
-	buf.WriteString(url)
+	buf.WriteString(reqURL)
 	buf.WriteString("\n\n")
 	services, _ := result["services"].([]interface{})
 	for _, s := range services {

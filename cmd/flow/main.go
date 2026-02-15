@@ -221,23 +221,25 @@ func main() {
 	}
 	store := NewFlowStore(filepath.Join(*dataDir, "flows.json"))
 
-	user := os.Getenv("MI_USER")
-	pass := os.Getenv("MI_PASS")
 	did := os.Getenv("MI_DID")
-	if user == "" || pass == "" {
-		log.Println("警告：未设置 MI_USER / MI_PASS，Flow 仍可编辑，但执行会失败")
+	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
+	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
+	if token == nil || !token.IsValid() {
+		log.Println("警告：未登录，Flow 仍可编辑，但执行会失败。请先运行 m login")
 	}
 
 	var (
-		account *miaccount.Account
 		minaSvc *minaservice.Service
 		miioSvc *miioservice.Service
 	)
-	if user != "" && pass != "" {
-		tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
-		account = miaccount.NewAccount(user, pass, tokenPath)
-		minaSvc = minaservice.New(account)
-		miioSvc = miioservice.New(account, "")
+	if token != nil && token.IsValid() {
+		var err error
+		miioSvc, err = miioservice.New(token, tokenPath)
+		if err != nil {
+			log.Printf("MiIO 初始化失败: %v", err)
+		} else {
+			minaSvc = minaservice.New(miioSvc)
+		}
 	}
 
 	a := &app{
@@ -399,7 +401,7 @@ func (a *app) runStep(step FlowStep) error {
 		return nil
 	case StepTypeTTS:
 		if a.mina == nil {
-			return fmt.Errorf("mina service not initialized (check MI_USER/MI_PASS)")
+			return fmt.Errorf("mina service not initialized (run 'm login' first)")
 		}
 		did := a.resolveDID(step)
 		if did == "" {
@@ -413,7 +415,7 @@ func (a *app) runStep(step FlowStep) error {
 		return err
 	case StepTypePlayURL:
 		if a.mina == nil {
-			return fmt.Errorf("mina service not initialized (check MI_USER/MI_PASS)")
+			return fmt.Errorf("mina service not initialized (run 'm login' first)")
 		}
 		did := a.resolveDID(step)
 		if did == "" {
@@ -427,7 +429,7 @@ func (a *app) runStep(step FlowStep) error {
 		return err
 	case StepTypeMiIO:
 		if a.miio == nil {
-			return fmt.Errorf("miio service not initialized (check MI_USER/MI_PASS)")
+			return fmt.Errorf("miio service not initialized (run 'm login' first)")
 		}
 		text := strings.TrimSpace(step.MiIOText)
 		if text == "" {

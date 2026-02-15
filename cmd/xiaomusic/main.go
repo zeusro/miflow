@@ -1,7 +1,4 @@
-// Command xiaomusic - minimal XiaoMusic-style CLI entry.
-// Goal: eventually mirror https://github.com/hanxi/xiaomusic behaviour,
-// but currently only provides a thin wrapper around the existing MiService-based
-// playback (command `m`) for simple URL/local-file播放。
+// Command xiaomusic - minimal XiaoMusic-style CLI entry (OAuth 2.0).
 package main
 
 import (
@@ -15,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/zeusro/miflow/internal/miaccount"
+	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
 )
 
@@ -24,14 +22,14 @@ var (
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "xiaomusic - 使用小爱音箱播放本地或网络音乐（简化版）\n\n")
-	fmt.Fprintf(os.Stderr, "环境变量：\n")
-	fmt.Fprintf(os.Stderr, "  MI_USER=<小米账号>\n")
-	fmt.Fprintf(os.Stderr, "  MI_PASS=<密码>\n")
-	fmt.Fprintf(os.Stderr, "  MI_DID=<设备ID或名称>\n\n")
+	fmt.Fprintf(os.Stderr, "xiaomusic - 使用小爱音箱播放本地或网络音乐（OAuth 模式）\n\n")
+	fmt.Fprintf(os.Stderr, "请先运行: m login\n")
+	fmt.Fprintf(os.Stderr, "环境变量: MI_DID=<设备ID或名称>\n\n")
 	fmt.Fprintf(os.Stderr, "用法示例：\n")
 	fmt.Fprintf(os.Stderr, "  xiaomusic -music_dir=./music play-url https://example.com/a.mp3\n")
 	fmt.Fprintf(os.Stderr, "  xiaomusic -music_dir=./music play-file song.mp3\n")
+	fmt.Fprintf(os.Stderr, "\n注：OAuth 模式下 play-url/play-file 可能需设备特定 MIoT 动作，\n")
+	fmt.Fprintf(os.Stderr, "    可用 m spec <音箱型号> 查看支持的播放动作。\n")
 }
 
 func main() {
@@ -48,18 +46,26 @@ func main() {
 	cmd := args[0]
 	rest := args[1:]
 
-	user := os.Getenv("MI_USER")
-	pass := os.Getenv("MI_PASS")
 	did := os.Getenv("MI_DID")
-	if user == "" || pass == "" || did == "" {
-		fmt.Fprintln(os.Stderr, "错误：必须设置环境变量 MI_USER / MI_PASS / MI_DID")
+	if did == "" {
+		fmt.Fprintln(os.Stderr, "错误：必须设置环境变量 MI_DID")
 		usage()
 		os.Exit(1)
 	}
 
 	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
-	account := miaccount.NewAccount(user, pass, tokenPath)
-	mina := minaservice.New(account)
+	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
+	if token == nil || !token.IsValid() {
+		fmt.Fprintln(os.Stderr, "错误：未登录，请先运行 m login")
+		os.Exit(1)
+	}
+
+	ioSvc, err := miioservice.New(token, tokenPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	mina := minaservice.New(ioSvc)
 
 	switch cmd {
 	case "play-url":

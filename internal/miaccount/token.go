@@ -42,3 +42,38 @@ func (s *TokenStore) Save(t *Token) error {
 	}
 	return os.WriteFile(s.Path, data, 0600)
 }
+
+// SaveOAuth writes OAuth token to file.
+func (s *TokenStore) SaveOAuth(t *OAuthToken) error {
+	if s == nil || s.Path == "" {
+		return nil
+	}
+	if t == nil {
+		_ = os.Remove(s.Path)
+		return nil
+	}
+	data, err := json.MarshalIndent(t, "", "\t")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(s.Path, data, 0600)
+}
+
+// LoadOAuth reads OAuth token from file. Returns nil if not found or invalid.
+func (s *TokenStore) LoadOAuth() *OAuthToken {
+	if s == nil || s.Path == "" {
+		return nil
+	}
+	data, err := os.ReadFile(s.Path)
+	if err != nil {
+		return nil
+	}
+	var t OAuthToken
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil
+	}
+	if t.AccessToken == "" && t.RefreshToken == "" {
+		return nil
+	}
+	return &t
+}

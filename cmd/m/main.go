@@ -1,4 +1,4 @@
-// Command m - XiaoMi Cloud Service CLI (Go port of MiService, replaces micli).
+// Command m - XiaoMi Cloud Service CLI (OAuth 2.0, ref: ha_xiaomi_home).
 package main
 
 import (
@@ -17,11 +17,9 @@ import (
 const prefix = "m "
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "MiService (m) - XiaoMi Cloud Service\n\n")
-	fmt.Fprintf(os.Stderr, "Usage: set environment variables:\n")
-	fmt.Fprintf(os.Stderr, "  export MI_USER=<username>\n")
-	fmt.Fprintf(os.Stderr, "  export MI_PASS=<password>\n")
-	fmt.Fprintf(os.Stderr, "  export MI_DID=<device_id|name>\n\n")
+	fmt.Fprintf(os.Stderr, "MiService (m) - XiaoMi MIoT CLI (OAuth 2.0)\n\n")
+	fmt.Fprintf(os.Stderr, "First run: m login\n")
+	fmt.Fprintf(os.Stderr, "Optional:  export MI_DID=<device_id|name>\n\n")
 	fmt.Fprint(os.Stderr, miiocommand.Help("", prefix))
 }
 
@@ -45,29 +43,40 @@ func main() {
 		os.Exit(0)
 	}
 
-	user := os.Getenv("MI_USER")
-	pass := os.Getenv("MI_PASS")
-	did := os.Getenv("MI_DID")
-	if user == "" || pass == "" {
-		fmt.Fprintln(os.Stderr, "Error: MI_USER and MI_PASS must be set")
+	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
+
+	// login: OAuth 2.0 flow
+	if cmd == "login" {
+		runLogin(tokenPath)
+		return
+	}
+
+	// Load OAuth token
+	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
+	if token == nil || !token.IsValid() {
+		fmt.Fprintln(os.Stderr, "Error: no valid token, run 'm login' first")
 		usage()
 		os.Exit(1)
 	}
 
-	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
-	account := miaccount.NewAccount(user, pass, tokenPath)
+	ioSvc, err := miioservice.New(token, tokenPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	did := os.Getenv("MI_DID")
 
 	minaLikes := map[string]bool{
 		"message": true, "play": true, "mina": true, "pause": true, "stop": true,
 		"loop": true, "play_list": true, "suno": true, "suno_random": true,
 	}
 	if minaLikes[cmd] {
-		runMina(account, did, cmd, args[1:])
+		runMina(minaservice.New(ioSvc), did, cmd, args[1:])
 		return
 	}
 
 	// MiIO/MIoT
-	ioSvc := miioservice.New(account, "")
 	text := strings.Join(args, " ")
 	result, err := miiocommand.Run(ioSvc, did, text, prefix)
 	if err != nil {
@@ -77,13 +86,38 @@ func main() {
 	printResult(result)
 }
 
-func runMina(account *miaccount.Account, miDID, cmd string, rest []string) {
+func runLogin(tokenPath string) {
+	oc := miaccount.NewOAuthClient()
+	authURL := oc.GenAuthURL("", "", true)
+	fmt.Fprintf(os.Stderr, "Open this URL in browser to login:\n%s\n\n", authURL)
+	fmt.Fprintln(os.Stderr, "Starting local callback server on :8765...")
+	if err := miaccount.OpenAuthURL(authURL); err != nil {
+		fmt.Fprintln(os.Stderr, "(Could not open browser, open the URL manually)")
+	}
+	code, err := miaccount.ServeCallback(8765)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	token, err := oc.GetToken(code)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	store := &miaccount.TokenStore{Path: tokenPath}
+	if err := store.SaveOAuth(token); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	fmt.Fprintln(os.Stderr, "Login successful. Token saved to", tokenPath)
+}
+
+func runMina(mina *minaservice.Service, miDID, cmd string, rest []string) {
 	if cmd != "mina" && miDID == "" {
 		fmt.Fprintln(os.Stderr, "Error: MI_DID must be set for mina commands (message, play, pause, etc.)")
 		os.Exit(1)
 	}
 
-	mina := minaservice.New(account)
 	deviceID, err := mina.GetMinaDeviceID(miDID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

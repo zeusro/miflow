@@ -1,5 +1,14 @@
 # 改动
 
+## OAuth 2.0 接入（替换密码登录）
+
+2026-02-13
+
+- 参考 [ha_xiaomi_home](https://github.com/XiaoMi/ha_xiaomi_home) 接入方式，放弃原始密码登录，改用 OAuth 2.0
+- 假设白名单域名，使用 `ha.api.io.mi.com` 与 miotspec 接口
+- 新增 `m login` 完成 OAuth 授权，Token 保存在 `~/.mi.token`
+- 小爱播报通过 MIoT「执行文本指令」动作实现（siid=5, aiid=5）
+
 ## 初始化 
 
 2026-02-11
@@ -11,11 +20,11 @@
 2026-02-11
 
 - 基于 [MiService](https://github.com/yihong0618/MiService) 实现小米云服务 Go 版本：
-  - 账号登录与 Token 持久化（`internal/miaccount`）
-  - MiIO / MIoT 协议支持（`internal/miioservice`）
-  - MiNA 小爱音箱控制（`internal/minaservice`）
+  - 账号认证（`internal/miaccount`，现为 OAuth 2.0）
+  - MiIO / MIoT 协议支持（`internal/miioservice`，现对接 ha.api.io.mi.com）
+  - MiNA 小爱音箱控制（`internal/minaservice`，TTS 使用 MIoT 动作）
   - 命令解析（`internal/miiocommand`）
-- 新增命令行工具 `m`（替代原 `micli`），支持设备列表、属性读写、动作调用、TTS 播报与播放 URL 等功能
+- 新增命令行工具 `m`，支持设备列表、属性读写、动作调用、TTS 播报等功能
 
 ## Flow 可视化控制流（flow CLI）
 
