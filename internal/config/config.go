@@ -90,7 +90,8 @@ type FlowConfig struct {
 // XiaomusicConfig for xiaomusic CLI.
 type XiaomusicConfig struct {
 	MusicDir string `yaml:"music_dir"`
-	Addr    string `yaml:"addr"`
+	Addr     string `yaml:"addr"`
+	Host     string `yaml:"host"` // 本机 IP，供音箱访问 play-file 的 HTTP 服务，空则自动检测
 }
 
 // MiIOConfig for MiIO service.
@@ -146,7 +147,7 @@ func defaultConfig() *Config {
 		},
 		Xiaomusic: XiaomusicConfig{
 			MusicDir: "./music",
-			Addr:    ":8090",
+			Addr:     ":8090",
 		},
 		MiIO: MiIOConfig{
 			SpecsCachePath: "",
@@ -220,6 +221,9 @@ func mergeXiaomusic(dst, src *XiaomusicConfig) {
 	}
 	if src.Addr != "" {
 		dst.Addr = src.Addr
+	}
+	if src.Host != "" {
+		dst.Host = src.Host
 	}
 }
 

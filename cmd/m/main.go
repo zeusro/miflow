@@ -125,7 +125,7 @@ func main() {
 		"loop": true, "play_list": true, "suno": true, "suno_random": true,
 	}
 	if minaLikes[cmd] {
-		runMina(minaservice.New(ioSvc), did, cmd, args[1:])
+		runMina(minaservice.NewWithMinaAPI(ioSvc, token, tokenPath), did, cmd, args[1:])
 		return
 	}
 

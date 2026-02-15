@@ -1,5 +1,24 @@
 # 改动
 
+## xiaomusic 完整实现（基于 hanxi/xiaomusic）
+
+2026-02-15
+
+- 新增 `internal/minaapi` 包，对接 api2.mina.mi.com，使用 m login 的 OAuth token
+- 实现 `PlayByURL`：L06A、LX05 等机型走 `play_by_music_url`（player_play_music），其余走 `player_play_url`
+- `minaservice` 新增 `NewWithMinaAPI`，`GetMinaDeviceID` 优先从 Mina device list 解析 deviceID
+- `play-file` 支持绝对路径（如 `/Users/xxx/Music/xxx.mp3`），文件不在 musicDir 时以文件所在目录为 HTTP 根目录
+- URL 路径段编码以支持空格等特殊字符
+- 新增 `xiaomusic.host` 配置及 `-host` 参数，供音箱访问 play-file 的 HTTP 服务
+
+## xiaomusic 局域网 IP 与端口处理
+
+2026-02-15
+
+- `getListenHost`：优先 UDP 探测（8.8.8.8）获取默认路由 IP，过滤 VPN 地址（198.18.x）；回退时遍历网卡，优先 192.168.x、10.x，排除 Docker 虚拟网段
+- `play-file` 启动前自动释放端口：`killProcessOnPort` 用 lsof + kill 终止占用 8090 的进程
+- 新增 `waitPortReady`：轮询确认端口已监听（5 秒超时）后再调用 `PlayByURL`，避免音箱请求时服务未就绪
+
 ## m 命令帮助与提示优化
 
 2026-02-15

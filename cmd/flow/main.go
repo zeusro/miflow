@@ -240,7 +240,7 @@ func main() {
 		if err != nil {
 			log.Printf("MiIO 初始化失败: %v", err)
 		} else {
-			minaSvc = minaservice.New(miioSvc)
+			minaSvc = minaservice.NewWithMinaAPI(miioSvc, token, tokenPath)
 		}
 	}
 

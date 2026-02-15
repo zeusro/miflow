@@ -5,16 +5,16 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
+	"github.com/zeusro/miflow/internal/mp3server"
 )
 
 func usage() {
@@ -24,8 +24,8 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "用法示例：\n")
 	fmt.Fprintf(os.Stderr, "  xiaomusic -music_dir=./music play-url https://example.com/a.mp3\n")
 	fmt.Fprintf(os.Stderr, "  xiaomusic -music_dir=./music play-file song.mp3\n")
-	fmt.Fprintf(os.Stderr, "\n注：OAuth 模式下 play-url/play-file 可能需设备特定 MIoT 动作，\n")
-	fmt.Fprintf(os.Stderr, "    可用 m spec <音箱型号> 查看支持的播放动作。\n")
+	fmt.Fprintf(os.Stderr, "  xiaomusic -host=192.168.1.100 play-file /path/to/music.mp3  # 指定本机 IP\n")
+	fmt.Fprintf(os.Stderr, "\n注：基于 MiNA API (api2.mina.mi.com)，参考 https://github.com/hanxi/xiaomusic\n")
 }
 
 func main() {
@@ -33,6 +33,7 @@ func main() {
 	cfg := config.Get()
 	flagMusicDir := flag.String("music_dir", cfg.Xiaomusic.MusicDir, "本地音乐目录，用于本地文件播放")
 	flagAddr := flag.String("addr", cfg.Xiaomusic.Addr, "本地静态文件 HTTP 服务监听地址")
+	flagHost := flag.String("host", cfg.Xiaomusic.Host, "本机 IP，供音箱访问 play-file 的 HTTP 服务")
 	flag.Usage = usage
 	flag.Parse()
 
@@ -64,7 +65,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	mina := minaservice.New(ioSvc)
+	mina := minaservice.NewWithMinaAPI(ioSvc, token, tokenPath)
 
 	switch cmd {
 	case "play-url":
@@ -80,7 +81,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "用法：xiaomusic play-file <相对或绝对文件路径>")
 			os.Exit(1)
 		}
-		if err := playFile(mina, did, *flagMusicDir, rest[0], *flagAddr); err != nil {
+		if err := playFile(mina, did, *flagMusicDir, rest[0], *flagAddr, *flagHost); err != nil {
 			log.Fatal(err)
 		}
 	default:
@@ -102,7 +103,9 @@ func playURL(mina *minaservice.Service, miDID, url string) error {
 }
 
 // playFile 在本机起一个简单静态 HTTP 服务，将本地文件映射为 URL 再通过 MiNA 播放。
-func playFile(mina *minaservice.Service, miDID, musicDir, filePath, addr string) error {
+// 映射规则：/Users/xxx/Music/QQ音乐/Taylor Swift-Red.flac -> http://本机ip:端口/Users/xxx/Music/QQ音乐/Taylor%20Swift-Red.flac
+// 支持绝对路径或相对于 musicDir 的路径。
+func playFile(mina *minaservice.Service, miDID, musicDir, filePath, addr, host string) error {
 	deviceID, err := mina.GetMinaDeviceID(miDID)
 	if err != nil {
 		return err
@@ -116,44 +119,28 @@ func playFile(mina *minaservice.Service, miDID, musicDir, filePath, addr string)
 	if err != nil {
 		return err
 	}
-	if !strings.HasPrefix(target, root) {
-		// 如果传的是文件名，就认为在 musicDir 下面
+	if !filepath.IsAbs(filePath) {
 		target = filepath.Join(root, filePath)
 	}
-	if _, err := os.Stat(target); err != nil {
-		return fmt.Errorf("文件不存在: %s (%v)", target, err)
-	}
 
-	// 在随机端口或指定端口起 HTTP 文件服务
-	mux := http.NewServeMux()
-	fs := http.FileServer(http.Dir(root))
-	mux.Handle("/", fs)
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("启动 HTTP 服务失败: %w", err)
-	}
-	defer ln.Close()
-
-	// 构造相对 URL
-	rel, err := filepath.Rel(root, target)
+	// mp3 可单独启动（如 ./mp3 -addr=:8090 /Users/zeusro/Music），xiaomusic 仅生成 URL 并通知音箱
+	srv, err := mp3server.New(mp3server.Config{Addr: addr, Host: host, LogRequest: false}, "/")
 	if err != nil {
 		return err
 	}
-	rel = strings.ReplaceAll(rel, string(filepath.Separator), "/")
-
-	hostPort := ln.Addr().String()
-	url := fmt.Sprintf("http://%s/%s", hostPort, rel)
-	fmt.Println("本地文件映射为 URL：", url)
-
-	// 异步启动 HTTP 服务
-	go func() {
-		if err := http.Serve(ln, mux); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-			log.Println("HTTP 服务错误:", err)
-		}
-	}()
-
-	_, err = mina.PlayByURL(deviceID, url, 2)
+	playURL, err := srv.PathToURL(target)
+	if err != nil {
+		return err
+	}
+	log.Printf("[映射] 本地: %s -> URL: %s", target, playURL)
+	fmt.Println("本地文件映射为 URL：", playURL)
+	if srv.Host() == "127.0.0.1" {
+		fmt.Fprintln(os.Stderr, "提示：未检测到局域网 IP，音箱可能无法访问。请用 -host=本机IP 指定，如 -host=192.168.1.100")
+	}
+	// 确认 mp3 服务已就绪
+	if !srv.WaitPortReady(5 * time.Second) {
+		return fmt.Errorf("mp3 服务未就绪，请先启动: mp3 -addr=%s <音乐目录>", addr)
+	}
+	_, err = mina.PlayByURL(deviceID, playURL, 2)
 	return err
 }
-
