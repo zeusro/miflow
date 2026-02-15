@@ -110,12 +110,3 @@ export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用�
 | 属性读写 | miotspec/prop      | m siid,piid=val |
 | 动作执行 | miotspec/action    | m siid-aiid args |
 | 小爱播报 | Execute Text Directive | m message    |
-
-
-
-/Users/zeusro/Music/h.flac
-
-# 查看本机 IP（如 ifconfig 或 系统设置）
--host=192.168.1.100
-
-MI_DID=978878303 ./xiaomusic  play-file "/Users/zeusro/Music/h.flac"

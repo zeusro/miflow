@@ -11,3 +11,4 @@ b:
 	go build -o m ./cmd/m
 	go build -o xiaomusic ./cmd/xiaomusic
 	go build -o mp3 ./cmd/mp3
+	go build -o flow ./cmd/flow
