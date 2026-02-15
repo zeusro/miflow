@@ -90,11 +90,11 @@ func runLogin(tokenPath string) {
 	oc := miaccount.NewOAuthClient()
 	authURL := oc.GenAuthURL("", "", true)
 	fmt.Fprintf(os.Stderr, "Open this URL in browser to login:\n%s\n\n", authURL)
-	fmt.Fprintln(os.Stderr, "Starting local callback server on :8765...")
+	fmt.Fprintln(os.Stderr, "Starting local callback server on :8123...")
 	if err := miaccount.OpenAuthURL(authURL); err != nil {
 		fmt.Fprintln(os.Stderr, "(Could not open browser, open the URL manually)")
 	}
-	code, err := miaccount.ServeCallback(8765)
+	code, err := miaccount.ServeCallback(8123)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -239,4 +239,3 @@ func printResult(v interface{}) {
 		fmt.Println(string(b))
 	}
 }
-

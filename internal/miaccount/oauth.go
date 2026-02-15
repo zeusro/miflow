@@ -20,21 +20,21 @@ const (
 	OAuth2AuthURL    = "https://account.xiaomi.com/oauth2/authorize"
 	OAuth2APIHost    = "ha.api.io.mi.com"
 	OAuth2TokenPath  = "/app/v2/ha/oauth/get_token"
-	DefaultCloudSvr = "cn"
+	DefaultCloudSvr  = "cn"
 	TokenExpireRatio = 0.7
 )
 
 // OAuthToken holds OAuth 2.0 auth data (replaces password-based token).
 type OAuthToken struct {
-	AccessToken     string `json:"access_token"`
-	RefreshToken    string `json:"refresh_token"`
-	ExpiresIn       int    `json:"expires_in"`
-	ExpiresTS       int64  `json:"expires_ts"` // Unix timestamp when token is considered expired
-	DeviceID        string `json:"device_id"`
-	State           string `json:"state,omitempty"`
-	CloudServer     string `json:"cloud_server,omitempty"`
-	OAuthClientID   string `json:"oauth_client_id,omitempty"`
-	OAuthRedirect   string `json:"oauth_redirect,omitempty"`
+	AccessToken   string `json:"access_token"`
+	RefreshToken  string `json:"refresh_token"`
+	ExpiresIn     int    `json:"expires_in"`
+	ExpiresTS     int64  `json:"expires_ts"` // Unix timestamp when token is considered expired
+	DeviceID      string `json:"device_id"`
+	State         string `json:"state,omitempty"`
+	CloudServer   string `json:"cloud_server,omitempty"`
+	OAuthClientID string `json:"oauth_client_id,omitempty"`
+	OAuthRedirect string `json:"oauth_redirect,omitempty"`
 }
 
 // IsValid returns true if access token exists and is not expired.
@@ -66,7 +66,7 @@ func NewOAuthClient() *OAuthClient {
 	}
 	redirectURI := os.Getenv("MI_OAUTH_REDIRECT_URI")
 	if redirectURI == "" {
-		redirectURI = "http://127.0.0.1:8765/callback"
+		redirectURI = "http://homeassistant.local:8123/callback"
 	}
 	deviceID := "ha." + RandString(16)
 	if d := os.Getenv("MI_OAUTH_DEVICE_ID"); d != "" {
@@ -113,10 +113,10 @@ func (c *OAuthClient) GenAuthURL(redirectURI, state string, skipConfirm bool) st
 // GetToken exchanges authorization code for access/refresh tokens.
 func (c *OAuthClient) GetToken(code string) (*OAuthToken, error) {
 	data := map[string]string{
-		"client_id":     c.ClientID,
-		"redirect_uri":  c.RedirectURI,
-		"code":          code,
-		"device_id":     c.DeviceID,
+		"client_id":    c.ClientID,
+		"redirect_uri": c.RedirectURI,
+		"code":         code,
+		"device_id":    c.DeviceID,
 	}
 	return c.getToken(data)
 }
@@ -124,9 +124,9 @@ func (c *OAuthClient) GetToken(code string) (*OAuthToken, error) {
 // RefreshToken refreshes access token using refresh_token.
 func (c *OAuthClient) RefreshToken(refreshToken string) (*OAuthToken, error) {
 	data := map[string]string{
-		"client_id":      c.ClientID,
-		"redirect_uri":   c.RedirectURI,
-		"refresh_token":  refreshToken,
+		"client_id":     c.ClientID,
+		"redirect_uri":  c.RedirectURI,
+		"refresh_token": refreshToken,
 	}
 	return c.getToken(data)
 }
@@ -190,7 +190,7 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 		State:         c.State,
 		CloudServer:   c.CloudServer,
 		OAuthClientID: c.ClientID,
-		OAuthRedirect:  c.RedirectURI,
+		OAuthRedirect: c.RedirectURI,
 	}, nil
 }
 
@@ -233,4 +233,3 @@ func OpenAuthURL(u string) error {
 	}
 	return cmd.Start()
 }
-

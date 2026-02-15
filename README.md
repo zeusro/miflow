@@ -12,6 +12,36 @@
 go build -o m ./cmd/m
 ```
 
+### 配置 homeassistant.local 解析
+
+OAuth 回调默认使用 `http://homeassistant.local:8123/callback`，需将 `homeassistant.local` 解析到本机（127.0.0.1）才能完成登录。
+
+**macOS**
+
+```bash
+sudo nano /etc/hosts
+```
+
+在文件末尾添加一行：
+
+```
+127.0.0.1 homeassistant.local
+```
+
+保存后生效（无需重启）。
+
+**Windows**
+
+1. 以管理员身份打开记事本
+2. 打开文件：`C:\Windows\System32\drivers\etc\hosts`
+3. 在文件末尾添加一行：
+
+```
+127.0.0.1 homeassistant.local
+```
+
+4. 保存后生效（无需重启）
+
 ### 登录（OAuth 2.0）
 
 首次使用需完成 OAuth 授权：

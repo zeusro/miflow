@@ -6,3 +6,6 @@ auto_commit:
 	git commit -am "$(now)"
 	git pull
 	git push
+
+b:
+	go build -o m ./cmd/m
