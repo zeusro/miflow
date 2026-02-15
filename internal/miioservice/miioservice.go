@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/mihomeapi"
 )
@@ -222,7 +223,10 @@ func (s *Service) DeviceList(name string, getVirtualModel bool, getHuamiDevices 
 
 // MiotSpec fetches MIoT spec from miot-spec.org (public, no auth).
 func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
-	specsPath := filepath.Join(os.TempDir(), "miservice_miot_specs.json")
+	specsPath := config.Get().MiIO.SpecsCachePath
+	if specsPath == "" {
+		specsPath = filepath.Join(os.TempDir(), "miservice_miot_specs.json")
+	}
 	allSpecs := make(map[string]string)
 	if data, err := os.ReadFile(specsPath); err == nil {
 		json.Unmarshal(data, &allSpecs)

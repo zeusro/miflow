@@ -3,13 +3,13 @@ package miaccount
 import (
 	"log"
 	"math/rand"
-	"os"
-	"time"
+
+	"github.com/zeusro/miflow/internal/config"
 )
 
-func init() { rand.Seed(time.Now().UnixNano()) }
-
-func httpDebug() bool { return os.Getenv("MI_DEBUG") == "1" || os.Getenv("MI_DEBUG") == "true" }
+func httpDebug() bool {
+	return config.Get().Debug
+}
 
 func logHttpReq(method, url string, reqBody []byte) {
 	if !httpDebug() {

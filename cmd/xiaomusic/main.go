@@ -11,14 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
-)
-
-var (
-	flagMusicDir = flag.String("music_dir", "./music", "本地音乐目录，用于本地文件播放")
-	flagAddr     = flag.String("addr", ":8090", "本地静态文件 HTTP 服务监听地址")
 )
 
 func usage() {
@@ -34,6 +30,9 @@ func usage() {
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	cfg := config.Get()
+	flagMusicDir := flag.String("music_dir", cfg.Xiaomusic.MusicDir, "本地音乐目录，用于本地文件播放")
+	flagAddr := flag.String("addr", cfg.Xiaomusic.Addr, "本地静态文件 HTTP 服务监听地址")
 	flag.Usage = usage
 	flag.Parse()
 
@@ -46,14 +45,14 @@ func main() {
 	cmd := args[0]
 	rest := args[1:]
 
-	did := os.Getenv("MI_DID")
+	did := cfg.DefaultDID
 	if did == "" {
-		fmt.Fprintln(os.Stderr, "错误：必须设置环境变量 MI_DID")
+		fmt.Fprintln(os.Stderr, "错误：必须设置 default_did（配置文件）或环境变量 MI_DID")
 		usage()
 		os.Exit(1)
 	}
 
-	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
+	tokenPath := cfg.TokenPath
 	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
 	if token == nil || !token.IsValid() {
 		fmt.Fprintln(os.Stderr, "错误：未登录，请先运行 m login")

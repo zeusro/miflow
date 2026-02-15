@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 	"time"
-)
 
-const apiTimeout = 30
+	"github.com/zeusro/miflow/internal/config"
+)
 
 // HAClient is HTTP client for ha.api.io.mi.com (OAuth Bearer token).
 // Ref: https://github.com/XiaoMi/ha_xiaomi_home
@@ -25,20 +25,32 @@ type HAClient struct {
 
 // NewHAClient creates client for given OAuth token.
 func NewHAClient(t *OAuthToken, tokenStore *TokenStore) *HAClient {
-	host := OAuth2APIHost
+	cfg := config.Get()
+	apiHost := cfg.OAuth.APIHost
+	if apiHost == "" {
+		apiHost = OAuth2APIHost
+	}
+	host := apiHost
 	if t.CloudServer != "" && t.CloudServer != "cn" {
-		host = t.CloudServer + "." + OAuth2APIHost
+		host = t.CloudServer + "." + apiHost
 	}
 	clientID := t.OAuthClientID
 	if clientID == "" {
+		clientID = cfg.OAuth.ClientID
+	}
+	if clientID == "" {
 		clientID = OAuth2ClientID
+	}
+	timeout := cfg.HTTP.TimeoutSeconds
+	if timeout <= 0 {
+		timeout = 30
 	}
 	return &HAClient{
 		Host:        host,
 		BaseURL:     "https://" + host,
 		ClientID:    clientID,
 		AccessToken: t.AccessToken,
-		HTTP:        &http.Client{Timeout: apiTimeout * time.Second},
+		HTTP:        &http.Client{Timeout: time.Duration(timeout) * time.Second},
 		TokenStore:  tokenStore,
 		OAuthToken:  t,
 	}

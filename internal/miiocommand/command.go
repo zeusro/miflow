@@ -254,5 +254,5 @@ MIoT Spec: %sspec [model_keyword|type_urn] [format=text|python|json]
 MIoT Decode: %sdecode <ssecurity> <nonce> <data> [gzip]
 `,
 		prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix,
-		prefix, prefix, did, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix)
+		prefix, prefix, did, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix)
 }

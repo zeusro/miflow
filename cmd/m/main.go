@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miiocommand"
 	"github.com/zeusro/miflow/internal/miioservice"
@@ -43,7 +43,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
+	cfg := config.Get()
+	tokenPath := cfg.TokenPath
 
 	// login: OAuth 2.0 flow
 	if cmd == "login" {
@@ -65,7 +66,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	did := os.Getenv("MI_DID")
+	did := cfg.DefaultDID
 
 	minaLikes := map[string]bool{
 		"message": true, "play": true, "mina": true, "pause": true, "stop": true,
@@ -90,11 +91,15 @@ func runLogin(tokenPath string) {
 	oc := miaccount.NewOAuthClient()
 	authURL := oc.GenAuthURL("", "", true)
 	fmt.Fprintf(os.Stderr, "Open this URL in browser to login:\n%s\n\n", authURL)
-	fmt.Fprintln(os.Stderr, "Starting local callback server on :8123...")
+	callbackPort := config.Get().MiIO.CallbackPort
+	if callbackPort <= 0 {
+		callbackPort = 8123
+	}
+	fmt.Fprintf(os.Stderr, "Starting local callback server on :%d...\n", callbackPort)
 	if err := miaccount.OpenAuthURL(authURL); err != nil {
 		fmt.Fprintln(os.Stderr, "(Could not open browser, open the URL manually)")
 	}
-	code, err := miaccount.ServeCallback(8123)
+	code, err := miaccount.ServeCallback(callbackPort)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

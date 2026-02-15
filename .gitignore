@@ -35,6 +35,11 @@ go.work.sum
 .env
 .env.*
 
+# config (user-specific, copy from configs/config-example.yaml)
+.config.yaml
+config.yaml
+.miflow.yaml
+
 # Editor/IDE
 .idea/
 .vscode/

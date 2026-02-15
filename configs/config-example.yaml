@@ -1,0 +1,48 @@
+# miflow 配置示例
+# 复制为 .config.yaml 或 config.yaml 并修改
+
+# 调试模式（打印 HTTP 请求/响应）
+debug: false
+
+# Token 存储路径（默认 ~/.mi.token）
+# token_path: ~/.mi.token
+
+# 默认设备 ID（部分命令需要，也可用环境变量 MI_DID）
+# default_did: ""
+
+# OAuth 配置（小米云服务）
+oauth:
+  # 客户端 ID，默认与 Home Assistant Xiaomi Home 集成相同
+  client_id: "2882303761520251711"
+  # 回调地址，需已加入小米开发者白名单
+  redirect_uri: "http://homeassistant.local:8123/callback"
+  # 区域：cn（中国大陆）、de、i2、ru、sg、us
+  cloud_server: cn
+  # 可选，OAuth device_id
+  # device_id: ""
+  # 以下一般无需修改
+  # api_host: ha.api.io.mi.com
+  # token_path: /app/v2/ha/oauth/get_token
+  # auth_url: https://account.xiaomi.com/oauth2/authorize
+  # token_expire_ratio: 0.7
+
+# HTTP 客户端
+http:
+  timeout_seconds: 30
+
+# Flow 服务（flow 命令）
+flow:
+  addr: ":18090"
+  data_dir: "./flowdata"
+
+# xiaomusic 命令
+xiaomusic:
+  music_dir: "./music"
+  addr: ":8090"
+
+# MiIO 相关
+miio:
+  # MIoT 规格缓存路径，留空则用系统临时目录
+  # specs_cache_path: ""
+  # OAuth 回调端口
+  callback_port: 8123

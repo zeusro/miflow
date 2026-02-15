@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/miiocommand"
@@ -212,8 +213,9 @@ type app struct {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	addr := flag.String("addr", ":18090", "HTTP 监听地址（用于可视化 Flow 配置）")
-	dataDir := flag.String("data_dir", "./flowdata", "Flow 配置持久化目录")
+	cfg := config.Get()
+	addr := flag.String("addr", cfg.Flow.Addr, "HTTP 监听地址（用于可视化 Flow 配置）")
+	dataDir := flag.String("data_dir", cfg.Flow.DataDir, "Flow 配置持久化目录")
 	flag.Parse()
 
 	if err := os.MkdirAll(*dataDir, 0o755); err != nil {
@@ -221,8 +223,8 @@ func main() {
 	}
 	store := NewFlowStore(filepath.Join(*dataDir, "flows.json"))
 
-	did := os.Getenv("MI_DID")
-	tokenPath := filepath.Join(os.Getenv("HOME"), ".mi.token")
+	did := cfg.DefaultDID
+	tokenPath := cfg.TokenPath
 	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
 	if token == nil || !token.IsValid() {
 		log.Println("警告：未登录，Flow 仍可编辑，但执行会失败。请先运行 m login")

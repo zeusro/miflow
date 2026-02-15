@@ -8,13 +8,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"runtime"
 	"time"
+
+	"github.com/zeusro/miflow/internal/config"
 )
 
-// OAuth2 constants from ha_xiaomi_home (https://github.com/XiaoMi/ha_xiaomi_home)
+// OAuth2 constants (defaults, overridden by config)
 const (
 	OAuth2ClientID   = "2882303761520251711"
 	OAuth2AuthURL    = "https://account.xiaomi.com/oauth2/authorize"
@@ -58,25 +59,30 @@ type OAuthClient struct {
 	HTTP        *http.Client
 }
 
-// NewOAuthClient creates client with optional env overrides.
+// NewOAuthClient creates client from config (file + env override), falls back to defaults.
 func NewOAuthClient() *OAuthClient {
-	clientID := os.Getenv("MI_OAUTH_CLIENT_ID")
+	cfg := config.Get()
+	clientID := cfg.OAuth.ClientID
 	if clientID == "" {
 		clientID = OAuth2ClientID
 	}
-	redirectURI := os.Getenv("MI_OAUTH_REDIRECT_URI")
+	redirectURI := cfg.OAuth.RedirectURI
 	if redirectURI == "" {
 		redirectURI = "http://homeassistant.local:8123/callback"
 	}
 	deviceID := "ha." + RandString(16)
-	if d := os.Getenv("MI_OAUTH_DEVICE_ID"); d != "" {
+	if d := cfg.OAuth.DeviceID; d != "" {
 		deviceID = d
 	}
 	h := sha1.Sum([]byte("d=" + deviceID))
 	state := hex.EncodeToString(h[:])
-	cloud := os.Getenv("MI_CLOUD_SERVER")
+	cloud := cfg.OAuth.CloudServer
 	if cloud == "" {
 		cloud = DefaultCloudSvr
+	}
+	timeout := 30
+	if cfg.HTTP.TimeoutSeconds > 0 {
+		timeout = cfg.HTTP.TimeoutSeconds
 	}
 	return &OAuthClient{
 		ClientID:    clientID,
@@ -84,7 +90,7 @@ func NewOAuthClient() *OAuthClient {
 		DeviceID:    deviceID,
 		State:       state,
 		CloudServer: cloud,
-		HTTP:        &http.Client{Timeout: 30 * time.Second},
+		HTTP:        &http.Client{Timeout: time.Duration(timeout) * time.Second},
 	}
 }
 
@@ -107,7 +113,11 @@ func (c *OAuthClient) GenAuthURL(redirectURI, state string, skipConfirm bool) st
 	if !skipConfirm {
 		params.Set("skip_confirm", "false")
 	}
-	return OAuth2AuthURL + "?" + params.Encode()
+	authURL := config.Get().OAuth.AuthURL
+	if authURL == "" {
+		authURL = OAuth2AuthURL
+	}
+	return authURL + "?" + params.Encode()
 }
 
 // GetToken exchanges authorization code for access/refresh tokens.
@@ -132,12 +142,21 @@ func (c *OAuthClient) RefreshToken(refreshToken string) (*OAuthToken, error) {
 }
 
 func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
-	host := OAuth2APIHost
+	cfg := config.Get()
+	apiHost := cfg.OAuth.APIHost
+	if apiHost == "" {
+		apiHost = OAuth2APIHost
+	}
+	host := apiHost
 	if c.CloudServer != "" && c.CloudServer != "cn" {
-		host = c.CloudServer + "." + OAuth2APIHost
+		host = c.CloudServer + "." + apiHost
+	}
+	tokenPath := cfg.OAuth.TokenPath
+	if tokenPath == "" {
+		tokenPath = OAuth2TokenPath
 	}
 	payload, _ := json.Marshal(data)
-	reqURL := "https://" + host + OAuth2TokenPath + "?data=" + url.QueryEscape(string(payload))
+	reqURL := "https://" + host + tokenPath + "?data=" + url.QueryEscape(string(payload))
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, err
@@ -180,7 +199,11 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	if r.AccessToken == "" || r.RefreshToken == "" {
 		return nil, fmt.Errorf("oauth: missing access_token or refresh_token")
 	}
-	expiresTS := time.Now().Unix() + int64(float64(r.ExpiresIn)*TokenExpireRatio)
+	expireRatio := config.Get().OAuth.TokenExpireRatio
+	if expireRatio <= 0 {
+		expireRatio = TokenExpireRatio
+	}
+	expiresTS := time.Now().Unix() + int64(float64(r.ExpiresIn)*expireRatio)
 	return &OAuthToken{
 		AccessToken:   r.AccessToken,
 		RefreshToken:  r.RefreshToken,

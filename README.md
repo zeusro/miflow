@@ -52,16 +52,27 @@ m login
 
 将自动打开浏览器，使用小米账号登录后，Token 会保存在 `~/.mi.token`。无需输入密码，符合 OAuth 2.0 安全规范。
 
-> **白名单说明**：默认使用与 Home Assistant Xiaomi Home 集成相同的 OAuth 配置。若需自定义，可设置环境变量：
+> **白名单说明**：默认使用与 Home Assistant Xiaomi Home 集成相同的 OAuth 配置。若需自定义，可通过配置文件或环境变量：
 > - `MI_OAUTH_CLIENT_ID` - OAuth 客户端 ID
 > - `MI_OAUTH_REDIRECT_URI` - 回调地址（需已加入小米开发者白名单）
 > - `MI_CLOUD_SERVER` - 区域：cn（中国大陆）、de、i2、ru、sg、us
 
+### 配置文件
+
+参考 [go-template](https://github.com/zeusro/go-template)，支持从配置文件读取变量，获取不到才使用默认值。
+
+```bash
+cp configs/config-example.yaml .config.yaml
+# 编辑 .config.yaml 修改配置
+```
+
+配置优先级：**环境变量 > 配置文件 > 默认值**。配置文件支持路径：`.config.yaml`、`config.yaml`、`~/.config/miflow/config.yaml`、`~/.miflow.yaml`。
+
 ### 环境变量
 
 ```bash
-export MI_DID=<设备ID或名称>   # 部分命令需要
-export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用）
+export MI_DID=<设备ID或名称>   # 部分命令需要，也可在配置 default_did
+export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用），或配置 debug: true
 ```
 
 ### 用法示例

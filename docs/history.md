@@ -1,5 +1,16 @@
 # 改动
 
+## 配置文件支持
+
+2026-02-15
+
+- 参考 [go-template](https://github.com/zeusro/go-template)，将项目中涉及变量的部分改为从配置文件获取，获取不到才赋予默认值
+- 新增 `internal/config` 配置包，支持 YAML 配置加载
+- 配置文件查找顺序：`.config.yaml`、`config.yaml`、`~/.config/miflow/config.yaml`、`~/.miflow.yaml`
+- 配置优先级：环境变量 > 配置文件 > 默认值
+- 新增 `configs/config-example.yaml` 示例配置
+- 可配置项：OAuth（client_id、redirect_uri、cloud_server 等）、token_path、default_did、debug、flow/addr、flow/data_dir、xiaomusic/music_dir、xiaomusic/addr、miio/callback_port、miio/specs_cache_path、http/timeout_seconds
+
 ## OAuth 2.0 接入（替换密码登录）
 
 2026-02-13
