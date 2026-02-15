@@ -1,5 +1,13 @@
 # 改动
 
+## m 命令帮助与提示优化
+
+2026-02-15
+
+- 根据实际实现更新 `usage()` 提示：标题改为「m - XiaoMi MIoT + Mina CLI」，明确设备配置（config default_did 或 MI_DID）及 mina 命令的设备要求
+- 新增 `m help` 完整帮助，支持 `help`、`-h`、`--help`、`?`、`？` 触发
+- 帮助内容按 AUTH、DEVICE、MINA、MIoT/MiIO 分类，逐条描述子命令功能，并附 EXAMPLES
+
 ## 配置文件支持
 
 2026-02-15
