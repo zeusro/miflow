@@ -59,6 +59,7 @@ MIoT / MiIO（设备属性与控制）
                     列出设备，可选按名称筛选、是否含虚拟设备、华米设备数量
   spec [model] [format]
                     查询 MIoT 规格，format 可选 text|python|json
+  spec_all           获取 m list 中所有型号的 SPEC
   decode <ssecurity> <nonce> <data> [gzip]
                     解码 MIoT 加密数据
 

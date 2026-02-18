@@ -227,7 +227,30 @@ func ServeCallback(port int) (string, error) {
 		if authCode != "" {
 			ch <- authCode
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write([]byte(`<html><body><p>登录成功！可以关闭此页面。</p></body></html>`))
+			w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>登录成功</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:3em;">
+  <h2 style="color:#22c55e;">✓ 登录成功</h2>
+  <p>米家 OAuth 授权已完成，token 已保存。</p>
+  <p id="countdown" style="font-size:1.2em;color:#64748b;">5 秒后自动关闭此页面...</p>
+  <script>
+    (function(){
+      var n=5;
+      var el=document.getElementById('countdown');
+      var t=setInterval(function(){
+        n--;
+        if(n>0) el.textContent=n+' 秒后自动关闭此页面...';
+        else {
+          clearInterval(t);
+          el.textContent='正在关闭...';
+          try{window.close()}catch(e){}
+        }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>`))
 		} else {
 			http.Error(w, "missing code", 400)
 		}

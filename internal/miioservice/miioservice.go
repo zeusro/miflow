@@ -252,19 +252,24 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 		os.WriteFile(specsPath, mustJSON(allSpecs), 0644)
 	}
 	if typ != "" && !strings.HasPrefix(typ, "urn:") {
-		filtered := make(map[string]string)
-		for m, t := range allSpecs {
-			if typ == m || strings.Contains(m, typ) {
-				filtered[m] = t
-			}
-		}
-		if len(filtered) == 1 {
-			for _, t := range filtered {
-				typ = t
-				break
-			}
+		// 精确匹配优先：若 typ 为完整 model 且存在于 allSpecs，直接取 URN
+		if urn, ok := allSpecs[typ]; ok {
+			typ = urn
 		} else {
-			return filtered, nil
+			filtered := make(map[string]string)
+			for m, t := range allSpecs {
+				if typ == m || strings.Contains(m, typ) {
+					filtered[m] = t
+				}
+			}
+			if len(filtered) == 1 {
+				for _, t := range filtered {
+					typ = t
+					break
+				}
+			} else if len(filtered) > 1 {
+				return filtered, nil
+			}
 		}
 	}
 	if typ == "" {

@@ -1,5 +1,41 @@
 # 改动
 
+## miiot/xiaomi/wifispeaker 属性控制与 API 测试
+
+2026-02-18
+
+- ctrl 新增 SetMute/GetMute、Next/Previous
+- l05b、l05c 补充完整 siid/piid/aiid 常量（与 oh2 一致）
+- wifispeaker 测试：GetVolume、SetVolumeGetVolume、GetMute、SetMuteGetMute、TTS、Play、Pause、Next、Previous、UnsupportedModel
+
+## miiot 产品规格 API（model 与 home.miot-spec.com 1:1 匹配）
+
+2026-02-18
+
+- 新增 `miiot/specs`：从 miot-spec.org/instances 加载 model→URN，生成 home.miot-spec.com/spec?type={urn}
+- 新增 `miiot/registry`：ModelAPI 注册表，支持 SpecURL、ProductURL
+- 按文件规则实现 13 个型号：xiaomi.wifispeaker.{oh2,l05b,l05c}、xiaomi.tv.eanfv1、bean.switch.{bln31,bln33}、chuangmi.plug.{m3,v3}、babai.plug.sk01a、giot.light.v5ssm、opple.light.bydceiling、lemesh.switch.sw3f13、linp.sensor_occupy.hb01
+- 新增 `cmd/miiot`：对照 m list 验证所有型号 SpecURL
+- 新增 `miiot/ctrl`：Controller 封装属性与动作操作（SetOn/GetOn、SetBrightness、TTS、SetVolume、Play/Pause、TVTurnOff、GetOccupancy、SetSwitchChannel）
+- 各型号文件补充 siid/piid/aiid 常量
+- 新增测试：ctrl 集成测试、bean/switch、opple/light、xiaomi/wifispeaker、linp/sensor_occupy 常量校验
+
+## m list 全型号 SPEC 功能（按 docs/spec.md）
+
+2026-02-18
+
+- 新增 `internal/device/specs.go`：ModelSpec 结构体及 LoadSpec、LoadAllModelSpecs，按 spec.md 流程从 miot-spec.org 获取 instances→instance
+- 新增 `m spec_all` 命令：获取 m list 中所有唯一型号的 SPEC，输出 ok/failed 汇总
+- 修复 miioservice.MiotSpec：精确 model 匹配优先，避免 oh2 误匹配 oh21/oh27/oh2p
+- 新增 `internal/device/specs_test.go`：TestLoadAllModelSpecs、TestLoadSpec
+
+## OAuth /callback 登录成功页优化
+
+2026-02-18
+
+- `/callback` 登录成功时返回完整 HTML 页面，显示「✓ 登录成功」及「米家 OAuth 授权已完成，token 已保存」
+- 新增 5 秒倒计时提示，倒计时结束后自动调用 `window.close()` 尝试关闭页面
+
 ## xiaomusic 完整实现（基于 hanxi/xiaomusic）
 
 2026-02-15
