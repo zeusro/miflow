@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - miflow</title>
+  <link href="/dist/output.css" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+  <main class="max-w-md w-full">
+    <div class="rounded-xl bg-white shadow-sm border border-slate-200 p-6 text-center">
+      <p class="text-slate-600">正在跳转到小米账号授权页面...</p>
+      <p class="mt-2 text-sm text-slate-500">如未自动跳转，请点击下方按钮</p>
+      <a id="auth-link" href="{{.AuthURL}}" class="mt-4 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 transition-colors">
+        前往授权
+      </a>
+    </div>
+  </main>
+  <script>
+    document.getElementById('auth-link').href = "{{.AuthURL}}";
+    window.location.href = "{{.AuthURL}}";
+  </script>
+</body>
+</html>
