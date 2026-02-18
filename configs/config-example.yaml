@@ -15,6 +15,7 @@ oauth:
   # 客户端 ID，默认与 Home Assistant Xiaomi Home 集成相同
   client_id: "2882303761520251711"
   # 回调地址，需已加入小米开发者白名单
+  # 默认与 web.addr :8123 一致；homeassistant.local 需解析到本机
   redirect_uri: "http://homeassistant.local:8123/callback"
   # 区域：cn（中国大陆）、de、i2、ru、sg、us
   cloud_server: cn
@@ -34,6 +35,12 @@ http:
 flow:
   addr: ":18090"
   data_dir: "./flowdata"
+
+# Web 服务（web 命令，OAuth 登录 + 设备管理 + 工作流）
+# 默认 :8123，与 homeassistant.local:8123 及 oauth.redirect_uri 一致
+web:
+  addr: ":8123"
+  data_dir: "./webdata"  # SQLite 工作流数据目录
 
 # xiaomusic 命令
 xiaomusic:

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设备管理 - miflow</title>
+  <link href="/dist/output.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50">
+  <nav class="bg-white border-b border-slate-200 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="/" class="text-slate-800 font-semibold">miflow</a>
+      <div class="flex gap-4">
+        <a href="#devices" class="text-slate-600 hover:text-slate-900">设备</a>
+        <a href="#workflows" class="text-slate-600 hover:text-slate-900">工作流</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-4">
+    <!-- Devices Section -->
+    <section id="devices" class="mb-12">
+      <h2 class="text-xl font-semibold text-slate-800 mb-4">设备列表</h2>
+      <div id="devices-error" class="hidden rounded-lg bg-red-50 border border-red-200 p-3 text-red-700 text-sm mb-4"></div>
+      <div id="devices-list" class="grid gap-3 md:grid-cols-2 lg:grid-cols-3"></div>
+    </section>
+
+    <!-- Device Detail Modal -->
+    <div id="device-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-start">
+            <h3 id="device-modal-title" class="text-lg font-semibold text-slate-800"></h3>
+            <button onclick="closeDeviceModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+          </div>
+          <div id="device-modal-body" class="mt-4 space-y-4"></div>
+          <div class="mt-6 flex gap-2">
+            <input id="device-control-cmd" type="text" placeholder="MIoT 命令，如 2=#60" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <button onclick="sendDeviceControl()" class="rounded-lg bg-emerald-600 px-4 py-2 text-white text-sm hover:bg-emerald-700">执行</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflows Section -->
+    <section id="workflows" class="mb-12">
+      <h2 class="text-xl font-semibold text-slate-800 mb-4">工作流（拖拽编排）</h2>
+      <div class="flex gap-2 mb-4">
+        <button onclick="newWorkflow()" class="rounded-lg bg-emerald-600 px-4 py-2 text-white text-sm hover:bg-emerald-700">新建工作流</button>
+      </div>
+      <div id="workflows-list" class="space-y-4"></div>
+    </section>
+
+    <!-- Workflow Editor Modal -->
+    <div id="workflow-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <input id="wf-name" type="text" placeholder="工作流名称" class="text-lg font-semibold border-b border-transparent hover:border-slate-300 focus:border-slate-500 outline-none">
+              <input id="wf-desc" type="text" placeholder="描述（可选）" class="block mt-1 text-sm text-slate-500 w-full border-b border-transparent hover:border-slate-300 focus:border-slate-500 outline-none">
+            </div>
+            <button onclick="closeWorkflowModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+          </div>
+          <div class="mb-2 text-sm font-medium text-slate-600">步骤（拖拽排序）</div>
+          <div id="workflow-steps" class="min-h-[120px] rounded-lg border-2 border-dashed border-slate-200 p-3 space-y-2"></div>
+          <div class="mt-4 flex gap-2">
+            <button onclick="addStep('delay')" class="rounded bg-slate-200 px-2 py-1 text-xs">+ 延迟</button>
+            <button onclick="addStep('tts')" class="rounded bg-slate-200 px-2 py-1 text-xs">+ TTS</button>
+            <button onclick="addStep('play_url')" class="rounded bg-slate-200 px-2 py-1 text-xs">+ 播放</button>
+            <button onclick="addStep('miio')" class="rounded bg-slate-200 px-2 py-1 text-xs">+ MIoT</button>
+          </div>
+          <div class="mt-6 flex justify-between">
+            <button onclick="runWorkflow()" class="rounded-lg bg-amber-500 px-4 py-2 text-white text-sm hover:bg-amber-600">运行</button>
+            <button onclick="saveWorkflow()" class="rounded-lg bg-emerald-600 px-4 py-2 text-white text-sm hover:bg-emerald-700">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let devices = [], workflows = [], currentDevice = null, currentWorkflow = null, sortable = null;
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, { headers: opts.headers || {}, ...opts });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || res.statusText);
+      }
+      if (res.status === 204) return null;
+      return res.json();
+    }
+
+    async function loadDevices() {
+      try {
+        devices = await api('/api/devices/');
+        renderDevices();
+        document.getElementById('devices-error').classList.add('hidden');
+      } catch (e) {
+        document.getElementById('devices-error').textContent = e.message;
+        document.getElementById('devices-error').classList.remove('hidden');
+        document.getElementById('devices-list').innerHTML = '';
+      }
+    }
+
+    function renderDevices() {
+      const el = document.getElementById('devices-list');
+      if (!devices.length) {
+        el.innerHTML = '<p class="text-slate-500 col-span-full">暂无设备，请先 <a href="/login" class="text-emerald-600">登录</a></p>';
+        return;
+      }
+      el.innerHTML = devices.map(d => `
+        <div class="rounded-lg bg-white border border-slate-200 p-4 hover:border-slate-300 cursor-pointer" onclick="openDevice('${d.did}')">
+          <div class="font-medium text-slate-800">${escapeHtml(d.name || d.did)}</div>
+          <div class="text-xs text-slate-500 mt-1">${escapeHtml(d.model || '')} · ${d.did}</div>
+        </div>
+      `).join('');
+    }
+
+    function openDevice(did) {
+      currentDevice = devices.find(d => d.did === did);
+      if (!currentDevice) return;
+      document.getElementById('device-modal-title').textContent = currentDevice.name || currentDevice.did;
+      document.getElementById('device-modal-body').innerHTML = `
+        <p class="text-sm text-slate-600">型号: ${escapeHtml(currentDevice.model || '-')}</p>
+        <p class="text-sm text-slate-600">DID: ${escapeHtml(currentDevice.did)}</p>
+      `;
+      document.getElementById('device-modal').classList.remove('hidden');
+    }
+
+    function closeDeviceModal() {
+      document.getElementById('device-modal').classList.add('hidden');
+    }
+
+    async function sendDeviceControl() {
+      const cmd = document.getElementById('device-control-cmd').value.trim();
+      if (!cmd || !currentDevice) return;
+      try {
+        await api('/api/devices/' + encodeURIComponent(currentDevice.did) + '/control', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd })
+        });
+        document.getElementById('device-control-cmd').value = '';
+        alert('执行成功');
+      } catch (e) {
+        alert('执行失败: ' + e.message);
+      }
+    }
+
+    async function loadWorkflows() {
+      workflows = await api('/api/workflows/');
+      renderWorkflows();
+    }
+
+    function renderWorkflows() {
+      const el = document.getElementById('workflows-list');
+      el.innerHTML = workflows.map(w => `
+        <div class="rounded-lg bg-white border border-slate-200 p-4 flex justify-between items-center">
+          <div>
+            <div class="font-medium text-slate-800">${escapeHtml(w.name)}</div>
+            <div class="text-sm text-slate-500">${(w.steps || []).length} 步</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="runWorkflowById('${w.id}')" class="rounded bg-amber-100 text-amber-800 px-2 py-1 text-xs">运行</button>
+            <button onclick="editWorkflow('${w.id}')" class="rounded bg-slate-100 text-slate-700 px-2 py-1 text-xs">编辑</button>
+            <button onclick="deleteWorkflow('${w.id}')" class="rounded bg-red-100 text-red-700 px-2 py-1 text-xs">删除</button>
+          </div>
+        </div>
+      `).join('') || '<p class="text-slate-500">暂无工作流，点击「新建工作流」创建</p>';
+    }
+
+    function newWorkflow() {
+      currentWorkflow = { id: '', name: '新工作流', description: '', steps: [] };
+      openWorkflowEditor();
+    }
+
+    async function editWorkflow(id) {
+      currentWorkflow = await api('/api/workflows/' + encodeURIComponent(id));
+      openWorkflowEditor();
+    }
+
+    function openWorkflowEditor() {
+      document.getElementById('wf-name').value = currentWorkflow.name || '';
+      document.getElementById('wf-desc').value = currentWorkflow.description || '';
+      renderSteps();
+      if (sortable) sortable.destroy();
+      sortable = Sortable.create(document.getElementById('workflow-steps'), {
+        animation: 150,
+        onEnd: () => {
+          const divs = document.querySelectorAll('#workflow-steps [data-step]');
+          currentWorkflow.steps = [...divs].map(el => {
+            const s = JSON.parse(el.dataset.step);
+            const input = el.querySelector('input');
+            if (input) {
+              if (s.type === 'delay') s.duration_ms = parseInt(input.value) || 0;
+              else if (s.type === 'tts') s.text = input.value;
+              else if (s.type === 'play_url') s.url = input.value;
+              else s.miio_text = input.value;
+            }
+            return s;
+          });
+        }
+      });
+      document.getElementById('workflow-modal').classList.remove('hidden');
+    }
+
+    function closeWorkflowModal() {
+      document.getElementById('workflow-modal').classList.add('hidden');
+    }
+
+    function addStep(type) {
+      currentWorkflow.steps = currentWorkflow.steps || [];
+      const step = { type, label: '', device: '', text: '', url: '', miio_text: '', duration_ms: 1000 };
+      currentWorkflow.steps.push(step);
+      renderSteps();
+    }
+
+    function renderSteps() {
+      const el = document.getElementById('workflow-steps');
+      const labels = { delay: '延迟(ms)', tts: 'TTS文本', play_url: '音频URL', miio: 'MIoT命令' };
+      const placeholders = { delay: '1000', tts: '播报内容', play_url: 'https://...', miio: '2=#60' };
+      el.innerHTML = (currentWorkflow.steps || []).map((s, i) => `
+        <div data-step="${escapeAttr(JSON.stringify(s))}" class="rounded bg-slate-100 p-2 text-sm flex justify-between items-center gap-2">
+          <span class="font-medium shrink-0 w-20">${labels[s.type] || s.type}</span>
+          <input type="text" placeholder="${placeholders[s.type] || ''}" value="${escapeAttr(s.type==='delay'?String(s.duration_ms):s.type==='tts'?s.text:s.type==='play_url'?s.url:s.miio_text||'')}" onchange="updateStep(${i}, this.value)" class="flex-1 min-w-0 rounded px-2 py-1 text-xs border border-slate-300">
+          <button onclick="removeStep(${i})" class="text-red-500 shrink-0">×</button>
+        </div>
+      `).join('');
+    }
+
+    function escapeAttr(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function updateStep(i, val) {
+      const s = currentWorkflow.steps[i];
+      if (s.type === 'delay') s.duration_ms = parseInt(val) || 0;
+      else if (s.type === 'tts') s.text = val;
+      else if (s.type === 'play_url') s.url = val;
+      else s.miio_text = val;
+    }
+
+    function removeStep(i) {
+      currentWorkflow.steps.splice(i, 1);
+      renderSteps();
+    }
+
+    async function saveWorkflow() {
+      currentWorkflow.name = document.getElementById('wf-name').value.trim() || '未命名';
+      currentWorkflow.description = document.getElementById('wf-desc').value.trim();
+      currentWorkflow.steps = [...document.querySelectorAll('#workflow-steps [data-step]')].map(el => {
+        const s = JSON.parse(el.dataset.step);
+        const input = el.querySelector('input');
+        if (input) {
+          if (s.type === 'delay') s.duration_ms = parseInt(input.value) || 0;
+          else if (s.type === 'tts') s.text = input.value;
+          else if (s.type === 'play_url') s.url = input.value;
+          else s.miio_text = input.value;
+        }
+        return s;
+      });
+      const url = currentWorkflow.id ? '/api/workflows/' + encodeURIComponent(currentWorkflow.id) : '/api/workflows/';
+      await api(url, {
+        method: currentWorkflow.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentWorkflow)
+      });
+      closeWorkflowModal();
+      loadWorkflows();
+    }
+
+    async function runWorkflow() {
+      if (!currentWorkflow.id) { alert('请先保存'); return; }
+      await api('/api/workflows/' + encodeURIComponent(currentWorkflow.id) + '/run', { method: 'POST' });
+      alert('已触发运行');
+    }
+
+    async function runWorkflowById(id) {
+      await api('/api/workflows/' + encodeURIComponent(id) + '/run', { method: 'POST' });
+      alert('已触发运行');
+    }
+
+    async function deleteWorkflow(id) {
+      if (!confirm('确认删除？')) return;
+      await api('/api/workflows/' + encodeURIComponent(id), { method: 'DELETE' });
+      loadWorkflows();
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDevices();
+      loadWorkflows();
+    });
+  </script>
+</body>
+</html>

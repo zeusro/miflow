@@ -57,6 +57,24 @@ m login
 > - `MI_OAUTH_REDIRECT_URI` - 回调地址（需已加入小米开发者白名单）
 > - `MI_CLOUD_SERVER` - 区域：cn（中国大陆）、de、i2、ru、sg、us
 
+### Web 登录与设备管理（可选）
+
+除 CLI 外，可通过 Web 页面完成 OAuth 登录、设备管理、工作流编排：
+
+```bash
+# 构建前端 CSS（首次或修改样式后）
+cd web && npm run build && cd ..
+
+# 启动 Web 服务
+./web
+# 或 go run ./cmd/web
+```
+
+访问 http://localhost:8123 或 http://homeassistant.local:8123 可：
+- **设备管理**：设备列表、设备详情、MIoT 命令控制
+- **工作流**：拖拽式编排（延迟、TTS、播放、MIoT），数据存 SQLite
+- **OAuth 登录**：默认监听 :8123，与 `oauth.redirect_uri`（`http://homeassistant.local:8123/callback`）一致，需将 homeassistant.local 解析到本机
+
 ### 配置文件
 
 参考 [go-template](https://github.com/zeusro/go-template)，支持从配置文件读取变量，获取不到才使用默认值。

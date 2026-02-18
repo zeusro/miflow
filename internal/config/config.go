@@ -56,6 +56,9 @@ type Config struct {
 	// Flow 服务（cmd/flow）
 	Flow FlowConfig `yaml:"flow"`
 
+	// Web 服务（cmd/web，OAuth 登录页）
+	Web WebConfig `yaml:"web"`
+
 	// xiaomusic
 	Xiaomusic XiaomusicConfig `yaml:"xiaomusic"`
 
@@ -85,6 +88,12 @@ type HTTPConfig struct {
 type FlowConfig struct {
 	Addr    string `yaml:"addr"`
 	DataDir string `yaml:"data_dir"`
+}
+
+// WebConfig for web server (OAuth login UI + device management).
+type WebConfig struct {
+	Addr    string `yaml:"addr"`    // 默认 :8123，与 oauth.redirect_uri 一致
+	DataDir string `yaml:"data_dir"` // SQLite 等数据目录，默认 ./webdata
 }
 
 // XiaomusicConfig for xiaomusic CLI.
@@ -145,6 +154,10 @@ func defaultConfig() *Config {
 			Addr:    ":18090",
 			DataDir: "./flowdata",
 		},
+		Web: WebConfig{
+			Addr:    ":8123",
+			DataDir: "./webdata",
+		},
 		Xiaomusic: XiaomusicConfig{
 			MusicDir: "./music",
 			Addr:     ":8090",
@@ -169,6 +182,7 @@ func mergeConfig(dst, src *Config) {
 	mergeOAuth(&dst.OAuth, &src.OAuth)
 	mergeHTTP(&dst.HTTP, &src.HTTP)
 	mergeFlow(&dst.Flow, &src.Flow)
+	mergeWeb(&dst.Web, &src.Web)
 	mergeXiaomusic(&dst.Xiaomusic, &src.Xiaomusic)
 	mergeMiIO(&dst.MiIO, &src.MiIO)
 }
@@ -207,6 +221,15 @@ func mergeHTTP(dst, src *HTTPConfig) {
 }
 
 func mergeFlow(dst, src *FlowConfig) {
+	if src.Addr != "" {
+		dst.Addr = src.Addr
+	}
+	if src.DataDir != "" {
+		dst.DataDir = src.DataDir
+	}
+}
+
+func mergeWeb(dst, src *WebConfig) {
 	if src.Addr != "" {
 		dst.Addr = src.Addr
 	}
