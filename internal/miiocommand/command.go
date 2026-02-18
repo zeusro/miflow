@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/zeusro/miflow/internal/device"
 	"github.com/zeusro/miflow/internal/miioservice"
 )
 
@@ -74,6 +75,27 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 			format = argv[1]
 		}
 		return svc.MiotSpec(typ, format)
+	}
+
+	if cmd == "spec_all" || cmd == "spec-all" {
+		api := device.NewAPI(svc)
+		specs, failed := api.LoadAllModelSpecs()
+		ok := make(map[string]string)
+		for m, s := range specs {
+			if s != nil {
+				ok[m] = s.Summary()
+			}
+		}
+		failedStr := make(map[string]string)
+		for m, e := range failed {
+			if e != nil {
+				failedStr[m] = e.Error()
+			}
+		}
+		return map[string]interface{}{
+			"ok":     ok,
+			"failed": failedStr,
+		}, nil
 	}
 
 	if cmd == "decode" {
@@ -250,6 +272,7 @@ Devs List: %slist [name=full|name_keyword] [getVirtualModel=false|true] [getHuam
 MIoT Spec: %sspec [model_keyword|type_urn] [format=text|python|json]
   %sspec speaker
   %sspec xiaomi.wifispeaker.lx04
+  %sspec_all  获取 m list 中所有型号的 SPEC（按 docs/spec.md 流程）
 
 MIoT Decode: %sdecode <ssecurity> <nonce> <data> [gzip]
 `,

@@ -1,0 +1,5 @@
+根据 https://home.miot-spec.com/s/ 中的列表，对照 ./m list 的结果，使用model字段作1对1匹配，
+并按照文件规则（比如模型，则文件为miiot/xiaomi/wifispeaker/oh2.go），实现并测试所有产品规则的api.比如xiaomi.wifispeaker.oh2对应的url为 https://home.miot-spec.com/s/xiaomi.wifispeaker.oh2，在页面的产品规格中，对应的链接为https://home.miot-spec.com/spec?type=urn:miot-spec-v2:device:speaker:0000A015:xiaomi-oh2:1 需要通过爬虫技术找到对应的关联关系
+
+补充所有产品的API和属性操作实现并追加测试用例
+
