@@ -5,6 +5,7 @@
 /m
 /mp3
 /xiaomusic
+/flow
 /bin/
 /dist/
 *.exe
@@ -44,3 +45,10 @@ config.yaml
 # Editor/IDE
 .idea/
 .vscode/
+
+# Web frontend
+web/node_modules/
+
+# Web data (SQLite)
+webdata/
+web/web

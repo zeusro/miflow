@@ -1,2 +1,7 @@
 在web目录中集成 https://github.com/tailwindlabs/tailwindcss 作为前端web组件，后端使用 GoFrame ，
 集成 internal/miaccount/oauth.go 的 /callback 接口。
+
+在web项目中追加米家设备管理可视化的功能，实现设备列表、设备详情、设备控制的功能，
+并加上一种拖拽式管理的功能，使用sqllite作为数据库，建立多个设备管理的工作流。
+
+假设已经绑定了homeassistant.local 和本地ip，修改监听端口为8123，
