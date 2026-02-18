@@ -1,0 +1,2 @@
+在web目录中集成 https://github.com/tailwindlabs/tailwindcss 作为前端web组件，后端使用 GoFrame ，
+集成 internal/miaccount/oauth.go 的 /callback 接口。
