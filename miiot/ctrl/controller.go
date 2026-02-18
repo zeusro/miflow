@@ -16,10 +16,14 @@ func New(api *device.API) *Controller {
 	return &Controller{API: api}
 }
 
-// spec 获取型号规格，未找到时返回零值。
+// spec 获取型号规格，优先使用静态 Specs，否则从 miot-spec.org 动态解析。
 func spec(model string) Spec {
 	if s, ok := Specs[model]; ok {
 		return s
+	}
+	resolved, err := ResolveSpec(model)
+	if err == nil {
+		return resolved
 	}
 	return Spec{}
 }

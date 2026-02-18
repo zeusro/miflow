@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	InstancesURL  = "http://miot-spec.org/miot-spec-v2/instances?status=all"
-	SpecBaseURL   = "https://home.miot-spec.com/spec"
+	InstancesURL   = "http://miot-spec.org/miot-spec-v2/instances?status=all"
+	SpecBaseURL    = "https://home.miot-spec.com/spec"
 	ProductBaseURL = "https://home.miot-spec.com/s"
 )
 
@@ -87,12 +87,20 @@ func ProductURLForModel(model string) string {
 
 // URN 返回 model 对应的 URN。
 func URN(model string) (string, error) {
+	return URNWithScrape(model)
+}
+
+// URNWithScrape 返回 URN，若 instances 中无则尝试从产品页抓取。
+func URNWithScrape(model string) (string, error) {
 	m, err := Load()
 	if err != nil {
 		return "", err
 	}
 	urn, ok := m[model]
 	if !ok {
+		if scraped, err := ScrapeProductPage(model); err == nil && scraped[model] != "" {
+			return scraped[model], nil
+		}
 		return "", fmt.Errorf("model not found: %s", model)
 	}
 	return urn, nil
