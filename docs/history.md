@@ -1,5 +1,16 @@
 # 改动
 
+## miiot 全设备属性操作与测试用例
+
+2026-02-18
+
+- ctrl TestSpecsCoverage 扩展为 readme 中全部 13 个型号
+- 新增 TestSpecsCoverage_DeviceSpecific：按设备类型校验 Spec（switch/light/speaker/TV/occupancy/toggle/brightness/channels）
+- TestControllerErrors 补充所有操作的 unknown model 错误校验，以及 SetSwitchChannel 通道越界
+- 新增集成测试：TestControllerToggle、TestControllerSetSwitchChannel、TestControllerTVTurnOff
+- TestControllerSetOnRoundtrip 增加 chuangmi.plug.v3 覆盖
+- 新增设备包测试：babai/plug、chuangmi/plug、giot/light、lemesh/switch、xiaomi/tv 的 Spec 常量校验
+
 ## miiot/xiaomi/wifispeaker 属性控制与 API 测试
 
 2026-02-18
