@@ -1,5 +1,5 @@
-// Package main - app holds shared state for the web server.
-package main
+// Package web - App holds shared state for the web server.
+package web
 
 import (
 	"errors"
@@ -20,7 +20,8 @@ var (
 	errNoDevice = errors.New("no device ID configured")
 )
 
-type app struct {
+// App holds shared state for the web server.
+type App struct {
 	workflowStore *workflow.Store
 	deviceAPI     *device.API
 	miio          *miioservice.Service
@@ -28,7 +29,24 @@ type app struct {
 	defaultDID    string
 }
 
-func newApp() (*app, error) {
+// DeviceAPI returns the device API (nil if not logged in).
+func (a *App) DeviceAPI() *device.API { return a.deviceAPI }
+
+// WorkflowStore returns the workflow store.
+func (a *App) WorkflowStore() *workflow.Store { return a.workflowStore }
+
+// Miio returns the miio service (nil if not logged in).
+func (a *App) Miio() *miioservice.Service { return a.miio }
+
+// RunWorkflow executes a workflow asynchronously.
+func (a *App) RunWorkflow(w *workflow.Workflow) {
+	for _, step := range w.Steps {
+		_ = a.runStep(step)
+	}
+}
+
+// NewApp creates a new App instance.
+func NewApp() (*App, error) {
 	cfg := config.Get()
 	dataDir := cfg.Web.DataDir
 	if dataDir == "" {
@@ -56,7 +74,7 @@ func newApp() (*app, error) {
 		}
 	}
 
-	return &app{
+	return &App{
 		workflowStore: store,
 		deviceAPI:     deviceAPI,
 		miio:          miio,
@@ -65,14 +83,14 @@ func newApp() (*app, error) {
 	}, nil
 }
 
-func (a *app) resolveDID(step workflow.Step) string {
+func (a *App) resolveDID(step workflow.Step) string {
 	if strings.TrimSpace(step.Device) != "" {
 		return step.Device
 	}
 	return a.defaultDID
 }
 
-func (a *app) runStep(step workflow.Step) error {
+func (a *App) runStep(step workflow.Step) error {
 	switch step.Type {
 	case workflow.StepTypeDelay:
 		if step.DurationMS <= 0 {

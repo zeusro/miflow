@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -13,10 +12,11 @@ import (
 	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/web"
+	"github.com/zeusro/miflow/web/api"
 )
 
 func main() {
-	a, err := newApp()
+	a, err := web.NewApp()
 	if err != nil {
 		g.Log().Fatalf(context.Background(), "init app: %v", err)
 	}
@@ -52,22 +52,22 @@ func main() {
 		group.GET("/callback", handleCallback)
 	})
 
-	// API: devices
+	// API: devices (DDD - device domain)
 	s.Group("/api/devices", func(group *ghttp.RouterGroup) {
-		group.GET("/", a.handleDevicesList)
-		group.GET("/{id}", a.handleDeviceGet)
-		group.GET("/{id}/spec", a.handleDeviceSpec)
-		group.POST("/{id}/control", a.handleDeviceControl)
+		group.GET("/", func(r *ghttp.Request) { api.DevicesList(a, r) })
+		group.GET("/{id}", func(r *ghttp.Request) { api.DeviceGet(a, r) })
+		group.GET("/{id}/spec", func(r *ghttp.Request) { api.DeviceSpec(a, r) })
+		group.POST("/{id}/control", func(r *ghttp.Request) { api.DeviceControl(a, r) })
 	})
 
-	// API: workflows (SQLite)
+	// API: workflows (DDD - workflow domain)
 	s.Group("/api/workflows", func(group *ghttp.RouterGroup) {
-		group.GET("/", a.handleWorkflowsList)
-		group.GET("/{id}", a.handleWorkflowGet)
-		group.POST("/", a.handleWorkflowCreate)
-		group.PUT("/{id}", a.handleWorkflowUpdate)
-		group.DELETE("/{id}", a.handleWorkflowDelete)
-		group.POST("/{id}/run", a.handleWorkflowRun)
+		group.GET("/", func(r *ghttp.Request) { api.WorkflowsList(a, r) })
+		group.GET("/{id}", func(r *ghttp.Request) { api.WorkflowGet(a, r) })
+		group.POST("/", func(r *ghttp.Request) { api.WorkflowCreate(a, r) })
+		group.PUT("/{id}", func(r *ghttp.Request) { api.WorkflowUpdate(a, r) })
+		group.DELETE("/{id}", func(r *ghttp.Request) { api.WorkflowDelete(a, r) })
+		group.POST("/{id}/run", func(r *ghttp.Request) { api.WorkflowRun(a, r) })
 	})
 
 	s.Group("/dist", func(group *ghttp.RouterGroup) {
@@ -92,66 +92,25 @@ func main() {
 
 func handleLogin(r *ghttp.Request) {
 	oc := miaccount.NewOAuthClient()
-	// Use config's redirect_uri (must be whitelisted in Xiaomi developer console)
 	authURL := oc.GenAuthURL("", "", true)
-
-	html := `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 - miflow</title>
-  <link href="/dist/output.css" rel="stylesheet">
-</head>
-<body class="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-  <main class="max-w-md w-full">
-    <div class="rounded-xl bg-white shadow-sm border border-slate-200 p-6 text-center">
-      <p class="text-slate-600">正在跳转到小米账号授权页面...</p>
-      <p class="mt-2 text-sm text-slate-500">如未自动跳转，请点击下方按钮</p>
-      <a id="auth-link" href="` + authURL + `" class="mt-4 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 transition-colors">
-        前往授权
-      </a>
-    </div>
-  </main>
-  <script>
-    document.getElementById('auth-link').href = "` + authURL + `";
-    window.location.href = "` + authURL + `";
-  </script>
-</body>
-</html>`
-	r.Response.Write(html)
+	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_ = web.RenderLogin(r.Response.Writer, authURL)
 }
 
 func handleCallback(r *ghttp.Request) {
 	code := r.Get("code").String()
+	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if code == "" {
 		r.Response.WriteStatus(http.StatusBadRequest)
-		r.Response.Write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>错误</title>
-<link href="/dist/output.css" rel="stylesheet"></head>
-<body class="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-<div class="rounded-xl bg-white shadow-sm border border-red-200 p-6 max-w-md">
-<h2 class="text-xl font-semibold text-red-600">授权失败</h2>
-<p class="mt-2 text-slate-600">缺少授权码 (code)，请重新登录。</p>
-<a href="/" class="mt-4 inline-block text-emerald-600 hover:underline">返回首页</a>
-</div></body></html>`)
+		_ = web.RenderError(r.Response.Writer, "授权失败", "缺少授权码 (code)，请重新登录。")
 		return
 	}
 
 	oc := miaccount.NewOAuthClient()
-	// redirect_uri must match config (whitelisted in Xiaomi)
 	token, err := oc.GetToken(code)
 	if err != nil {
 		r.Response.WriteStatus(http.StatusInternalServerError)
-		r.Response.Write(fmt.Sprintf(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>错误</title>
-<link href="/dist/output.css" rel="stylesheet"></head>
-<body class="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-<div class="rounded-xl bg-white shadow-sm border border-red-200 p-6 max-w-md">
-<h2 class="text-xl font-semibold text-red-600">Token 获取失败</h2>
-<p class="mt-2 text-slate-600">%s</p>
-<a href="/" class="mt-4 inline-block text-emerald-600 hover:underline">返回首页</a>
-</div></body></html>`, err.Error()))
+		_ = web.RenderError(r.Response.Writer, "Token 获取失败", err.Error())
 		return
 	}
 
@@ -163,53 +122,9 @@ func handleCallback(r *ghttp.Request) {
 	store := &miaccount.TokenStore{Path: tokenPath}
 	if err := store.SaveOAuth(token); err != nil {
 		r.Response.WriteStatus(http.StatusInternalServerError)
-		r.Response.Write(fmt.Sprintf(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>错误</title>
-<link href="/dist/output.css" rel="stylesheet"></head>
-<body class="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-<div class="rounded-xl bg-white shadow-sm border border-red-200 p-6 max-w-md">
-<h2 class="text-xl font-semibold text-red-600">Token 保存失败</h2>
-<p class="mt-2 text-slate-600">%s</p>
-<a href="/" class="mt-4 inline-block text-emerald-600 hover:underline">返回首页</a>
-</div></body></html>`, err.Error()))
+		_ = web.RenderError(r.Response.Writer, "Token 保存失败", err.Error())
 		return
 	}
 
-	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	r.Response.Write(`<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <title>登录成功</title>
-  <link href="/dist/output.css" rel="stylesheet">
-</head>
-<body class="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-  <div class="rounded-xl bg-white shadow-sm border border-slate-200 p-8 max-w-md text-center">
-    <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-      <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-    </div>
-    <h2 class="mt-4 text-xl font-semibold text-slate-800">登录成功</h2>
-    <p class="mt-2 text-slate-600">米家 OAuth 授权已完成，token 已保存。</p>
-    <p id="countdown" class="mt-4 text-sm text-slate-500">5 秒后自动关闭此页面...</p>
-    <a href="/" class="mt-4 inline-block text-emerald-600 hover:underline">返回首页</a>
-  </div>
-  <script>
-    (function(){
-      var n=5;
-      var el=document.getElementById('countdown');
-      var t=setInterval(function(){
-        n--;
-        if(n>0) el.textContent=n+' 秒后自动关闭此页面...';
-        else {
-          clearInterval(t);
-          el.textContent='正在关闭...';
-          try{window.close()}catch(e){}
-        }
-      }, 1000);
-    })();
-  </script>
-</body>
-</html>`)
+	_ = web.RenderCallbackSuccess(r.Response.Writer)
 }
