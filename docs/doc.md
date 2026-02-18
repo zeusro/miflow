@@ -3,6 +3,7 @@
 https://iot.mi.com/v2/new/doc/introduction/solution/standard/category/switch
 标准介绍
 
+最重要的文档⭐️
 功能定义
 https://iot.mi.com/v2/new/doc/configuration/define-features
 产品的各项参数设置

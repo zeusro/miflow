@@ -1,0 +1,10 @@
+根据url的对应关系（比如 https://home.miot-spec.com/spec?type=urn:miot-spec-v2:device:speaker:0000A015:xiaomi-oh2:1 对应 xiaomi.wifispeaker.oh2 需要先从 https://home.miot-spec.com/s/xiaomi.wifispeaker.oh2 进去，
+找到对应的关联关系找到所有设备的对应关系class="divider" 中的url就是了 ），实现所有miiot设备的属性操作，并附上测试用例
+
+使用爬虫技术，找到 ./m list 中的所有设备的关联的技术说明。比如 xiaomi.tv.eanfv1 的关联的产品说明为
+https://home.miot-spec.com/spec?type=urn:miot-spec-v2:device:tv:0000A015:xiaomi-eanfv1:1
+在html中的class="divider" 下面，有一个li标签，其中的a标签就是技术说明的url
+https://home.miot-spec.com/spec?type=urn:miot-spec-v2:device:television:0000A010:xiaomi-eanfv1:1
+找到所有的./m list，并列成表格写入 miiot/readme.md 中
+
+根据 miiot/readme.md 中的技术说明url，实现miiot目录所有设备的属性操作，并附上测试用例
