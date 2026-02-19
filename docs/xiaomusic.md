@@ -53,3 +53,4 @@ MiService：XiaoMi Cloud Service
 
 - `api2.mina.mi.com` 需 **micoapi** 认证（MiAccount 账号密码），OAuth（m login）不被支持
 - 若出现 `http 401, 返回 HTML 非 JSON`，需使用 [hanxi/xiaomusic](https://github.com/hanxi/xiaomusic) 或后续添加 MiAccount 支持
+- **获取小爱对话**：`userprofile.mina.mi.com` 需 Cookie（userId、deviceId、serviceToken），OAuth 不支持。实现步骤见 [docs/conversation.md](conversation.md)
