@@ -35,3 +35,8 @@ func RenderError(w io.Writer, title, message string) error {
 func RenderCallbackSuccess(w io.Writer) error {
 	return Templates.ExecuteTemplate(w, "callback-success.html", nil)
 }
+
+// RenderDefault writes the default fallback index page to w.
+func RenderDefault(w io.Writer) error {
+	return Templates.ExecuteTemplate(w, "default.html", nil)
+}

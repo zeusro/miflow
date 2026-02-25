@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -14,6 +16,17 @@ import (
 	"github.com/zeusro/miflow/web"
 	"github.com/zeusro/miflow/web/api"
 )
+
+// pendingOAuth stores OAuthClient by state for callback; device_id must match login.
+var (
+	pendingOAuthMu sync.Mutex
+	pendingOAuth   = make(map[string]*pendingOAuthEntry)
+)
+
+type pendingOAuthEntry struct {
+	oc        *miaccount.OAuthClient
+	createdAt time.Time
+}
 
 func main() {
 	a, err := web.NewApp()
@@ -33,7 +46,8 @@ func main() {
 		group.GET("/", func(r *ghttp.Request) {
 			data, err := fs.ReadFile(staticRoot, "index.html")
 			if err != nil {
-				r.Response.WriteStatus(http.StatusNotFound)
+				r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+				_ = web.RenderDefault(r.Response.Writer)
 				return
 			}
 			r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -92,6 +106,16 @@ func main() {
 
 func handleLogin(r *ghttp.Request) {
 	oc := miaccount.NewOAuthClient()
+	pendingOAuthMu.Lock()
+	// Clean up entries older than 10 minutes
+	for state, e := range pendingOAuth {
+		if time.Since(e.createdAt) > 10*time.Minute {
+			delete(pendingOAuth, state)
+		}
+	}
+	pendingOAuth[oc.State] = &pendingOAuthEntry{oc: oc, createdAt: time.Now()}
+	pendingOAuthMu.Unlock()
+
 	authURL := oc.GenAuthURL("", "", true)
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = web.RenderLogin(r.Response.Writer, authURL)
@@ -99,6 +123,7 @@ func handleLogin(r *ghttp.Request) {
 
 func handleCallback(r *ghttp.Request) {
 	code := r.Get("code").String()
+	state := r.Get("state").String()
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if code == "" {
 		r.Response.WriteStatus(http.StatusBadRequest)
@@ -106,7 +131,20 @@ func handleCallback(r *ghttp.Request) {
 		return
 	}
 
-	oc := miaccount.NewOAuthClient()
+	var oc *miaccount.OAuthClient
+	pendingOAuthMu.Lock()
+	if e, ok := pendingOAuth[state]; ok {
+		oc = e.oc
+		delete(pendingOAuth, state)
+	}
+	pendingOAuthMu.Unlock()
+
+	if oc == nil {
+		r.Response.WriteStatus(http.StatusBadRequest)
+		_ = web.RenderError(r.Response.Writer, "授权失败", "未找到对应的登录会话 (state 不匹配)，请从 /login 重新发起授权。")
+		return
+	}
+
 	token, err := oc.GetToken(code)
 	if err != nil {
 		r.Response.WriteStatus(http.StatusInternalServerError)

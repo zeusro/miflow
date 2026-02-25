@@ -1,5 +1,15 @@
 # 改动
 
+## OAuth /callback 8123 程序 token 响应与存储修复
+
+2026-02-25
+
+- 修复 Web 端 `/callback` 未正确响应和储存 token 的问题
+- 根因：`handleLogin` 与 `handleCallback` 各自创建新的 `OAuthClient`，导致 device_id 不一致；小米 auth code 与发起授权时的 device_id 绑定，换 token 时 device_id 不匹配会失败
+- 新增 `pendingOAuth` 缓存：以 state 为 key 存储 login 时的 `OAuthClient`
+- `handleLogin`：创建 OAuthClient 后存入 `pendingOAuth[state]`，并清理 10 分钟前的旧记录
+- `handleCallback`：从 URL 取 state，从缓存取出对应 OAuthClient 再调用 GetToken；未找到时提示「请从 /login 重新发起授权」
+
 ## miiot 全设备属性操作与测试用例
 
 2026-02-18
