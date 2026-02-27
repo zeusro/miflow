@@ -13,3 +13,4 @@ b:
 	go build -o mp3 ./cmd/mp3
 	go build -o flow ./cmd/flow
 	go build -o web ./cmd/web
+	chmod +x m xiaomusic mp3 ./flow miflow-web

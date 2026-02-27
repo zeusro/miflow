@@ -1,15 +1,19 @@
 package miaccount
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/zeusro/miflow/internal/config"
@@ -218,10 +222,26 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 }
 
 // ServeCallback starts HTTP server to receive OAuth callback and returns the auth code.
+// If the port is already in use, prompts the user to manually paste the code from the redirect URL.
 func ServeCallback(port int) (string, error) {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		if strings.Contains(err.Error(), "address already in use") {
+			fmt.Fprintf(os.Stderr, "Port %d is already in use. After authorizing, copy the 'code' from the redirect URL and paste it here:\n", port)
+			scanner := bufio.NewScanner(os.Stdin)
+			if scanner.Scan() {
+				return strings.TrimSpace(scanner.Text()), nil
+			}
+			return "", fmt.Errorf("oauth: no code provided")
+		}
+		return "", err
+	}
+	defer ln.Close()
+	fmt.Fprintf(os.Stderr, "Local callback server listening on :%d...\n", port)
+
 	ch := make(chan string, 1)
 	mux := http.NewServeMux()
-	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+	srv := &http.Server{Handler: mux}
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		authCode := r.URL.Query().Get("code")
 		if authCode != "" {
@@ -255,7 +275,7 @@ func ServeCallback(port int) (string, error) {
 			http.Error(w, "missing code", 400)
 		}
 	})
-	go srv.ListenAndServe()
+	go srv.Serve(ln)
 	select {
 	case code := <-ch:
 		srv.Close()

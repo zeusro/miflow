@@ -52,3 +52,5 @@ web/node_modules/
 # Web data (SQLite)
 webdata/
 web/web
+./flow
+miflow-web

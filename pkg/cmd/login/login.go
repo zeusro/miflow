@@ -23,7 +23,6 @@ func (l Login) Run() {
 	if callbackPort <= 0 {
 		callbackPort = 8123
 	}
-	fmt.Fprintf(os.Stderr, "Starting local callback server on :%d...\n", callbackPort)
 	if err := miaccount.OpenAuthURL(authURL); err != nil {
 		fmt.Fprintln(os.Stderr, "(Could not open browser, open the URL manually)")
 	}

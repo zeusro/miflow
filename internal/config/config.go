@@ -71,9 +71,9 @@ type OAuthConfig struct {
 	ClientID    string `yaml:"client_id"`
 	RedirectURI string `yaml:"redirect_uri"`
 	CloudServer string `yaml:"cloud_server"` // cn, de, i2, ru, sg, us
-	DeviceID    string `yaml:"device_id"`   // 可选，用于 OAuth device_id
+	DeviceID    string `yaml:"device_id"`    // 可选，用于 OAuth device_id
 	APIHost     string `yaml:"api_host"`
-	TokenPath   string `yaml:"token_path"`   // API path
+	TokenPath   string `yaml:"token_path"` // API path
 	AuthURL     string `yaml:"auth_url"`
 	// TokenExpireRatio 过期前多少比例时刷新，0-1
 	TokenExpireRatio float64 `yaml:"token_expire_ratio"`
@@ -92,7 +92,7 @@ type FlowConfig struct {
 
 // WebConfig for web server (OAuth login UI + device management).
 type WebConfig struct {
-	Addr    string `yaml:"addr"`    // 默认 :8123，与 oauth.redirect_uri 一致
+	Addr    string `yaml:"addr"`     // 默认 :8123，与 oauth.redirect_uri 一致
 	DataDir string `yaml:"data_dir"` // SQLite 等数据目录，默认 ./webdata
 }
 

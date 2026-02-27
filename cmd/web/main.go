@@ -46,17 +46,18 @@ func main() {
 		group.GET("/", func(r *ghttp.Request) {
 			data, err := fs.ReadFile(staticRoot, "index.html")
 			if err != nil {
-				r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-				_ = web.RenderDefault(r.Response.Writer)
-				return
+				data, _ = web.RenderDefaultBytes()
 			}
-			r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-			r.Response.Write(data)
+			if len(data) > 0 {
+				r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+				r.Response.Write(data)
+			}
 		})
 		group.GET("/app", func(r *ghttp.Request) {
 			data, err := fs.ReadFile(staticRoot, "app.html")
 			if err != nil {
 				r.Response.WriteStatus(http.StatusNotFound)
+				r.Response.Write([]byte("app.html not found"))
 				return
 			}
 			r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -117,17 +118,34 @@ func handleLogin(r *ghttp.Request) {
 	pendingOAuthMu.Unlock()
 
 	authURL := oc.GenAuthURL("", "", true)
+	data, err := web.RenderLoginBytes(authURL)
+	if err != nil {
+		r.Response.WriteStatus(http.StatusInternalServerError)
+		r.Response.Write([]byte("模板渲染失败"))
+		return
+	}
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = web.RenderLogin(r.Response.Writer, authURL)
+	r.Response.Write(data)
 }
 
 func handleCallback(r *ghttp.Request) {
 	code := r.Get("code").String()
 	state := r.Get("state").String()
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	writeError := func(status int, title, message string) {
+		data, err := web.RenderErrorBytes(title, message)
+		if err != nil {
+			r.Response.WriteStatus(status)
+			r.Response.Write([]byte(title + ": " + message))
+			return
+		}
+		r.Response.WriteStatus(status)
+		r.Response.Write(data)
+	}
+
 	if code == "" {
-		r.Response.WriteStatus(http.StatusBadRequest)
-		_ = web.RenderError(r.Response.Writer, "授权失败", "缺少授权码 (code)，请重新登录。")
+		writeError(http.StatusBadRequest, "授权失败", "缺少授权码 (code)，请重新登录。")
 		return
 	}
 
@@ -140,15 +158,13 @@ func handleCallback(r *ghttp.Request) {
 	pendingOAuthMu.Unlock()
 
 	if oc == nil {
-		r.Response.WriteStatus(http.StatusBadRequest)
-		_ = web.RenderError(r.Response.Writer, "授权失败", "未找到对应的登录会话 (state 不匹配)，请从 /login 重新发起授权。")
+		writeError(http.StatusBadRequest, "授权失败", "未找到对应的登录会话 (state 不匹配)，请从 /login 重新发起授权。")
 		return
 	}
 
 	token, err := oc.GetToken(code)
 	if err != nil {
-		r.Response.WriteStatus(http.StatusInternalServerError)
-		_ = web.RenderError(r.Response.Writer, "Token 获取失败", err.Error())
+		writeError(http.StatusInternalServerError, "Token 获取失败", err.Error())
 		return
 	}
 
@@ -159,10 +175,16 @@ func handleCallback(r *ghttp.Request) {
 	}
 	store := &miaccount.TokenStore{Path: tokenPath}
 	if err := store.SaveOAuth(token); err != nil {
-		r.Response.WriteStatus(http.StatusInternalServerError)
-		_ = web.RenderError(r.Response.Writer, "Token 保存失败", err.Error())
+		writeError(http.StatusInternalServerError, "Token 保存失败", err.Error())
 		return
 	}
 
-	_ = web.RenderCallbackSuccess(r.Response.Writer)
+	data, err := web.RenderCallbackSuccessBytes()
+	if err != nil {
+		r.Response.WriteStatus(http.StatusOK)
+		r.Response.Write([]byte("登录成功，token 已保存。"))
+		return
+	}
+	r.Response.WriteStatus(http.StatusOK)
+	r.Response.Write(data)
 }
