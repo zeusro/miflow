@@ -9,8 +9,7 @@ auto_commit:
 
 b:
 	go build -o m ./cmd/m
-	go build -o xiaomusic ./cmd/xiaomusic
 	go build -o mp3 ./cmd/mp3
 	go build -o flow ./cmd/flow
 	go build -o web ./cmd/web
-	chmod +x m xiaomusic mp3 ./flow miflow-web
+	chmod +x m mp3 ./flow miflow-web

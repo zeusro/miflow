@@ -28,8 +28,8 @@ func usage() {
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	cfg := config.Get()
-	flagAddr := flag.String("addr", cfg.Xiaomusic.Addr, "HTTP 服务监听地址")
-	flagHost := flag.String("host", cfg.Xiaomusic.Host, "本机 IP，供局域网访问，空则自动检测")
+	flagAddr := flag.String("addr", cfg.Mp3.Addr, "HTTP 服务监听地址")
+	flagHost := flag.String("host", cfg.Mp3.Host, "本机 IP，供局域网访问，空则自动检测")
 	flag.Usage = usage
 	flag.Parse()
 

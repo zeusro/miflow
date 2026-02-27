@@ -1,0 +1,27 @@
+{
+  "name": "miflow",
+  "version": "1.0.0",
+  "description": "小米 IOT 自定义控制流",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeusro/miflow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zeusro/miflow/issues"
+  },
+  "homepage": "https://github.com/zeusro/miflow#readme",
+  "devDependencies": {
+    "likec4": "^1.50.0"
+  }
+}

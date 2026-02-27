@@ -42,9 +42,8 @@ web:
   addr: ":8123"
   data_dir: "./webdata"  # SQLite 工作流数据目录
 
-# xiaomusic 命令
-xiaomusic:
-  music_dir: "./music"
+# mp3 命令（HTTP 文件服务）
+mp3:
   addr: ":8090"
 
 # MiIO 相关

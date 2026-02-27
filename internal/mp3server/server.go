@@ -148,7 +148,7 @@ func (s *Server) WaitPortReady(timeout time.Duration) bool {
 	return waitPortReady("127.0.0.1", s.port, timeout)
 }
 
-// ResolveHostPort 从 Config 解析 host/port，无需启动服务。用于 mp3 单独启动时，xiaomusic 仅需生成 URL。
+// ResolveHostPort 从 Config 解析 host/port，无需启动服务。
 func (s *Server) ResolveHostPort() {
 	if s.host != "" && s.port != "" {
 		return

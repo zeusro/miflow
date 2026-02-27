@@ -1,0 +1,488 @@
+openapi: 3.0.3
+info:
+  title: miflow Web API
+  description: |
+    miflow Web 服务 REST API，提供设备管理（DDD - device domain）与工作流管理（DDD - workflow domain）。
+    设备相关接口需先通过 OAuth 登录（/login）获取 token 后访问。
+  version: 1.0.0
+  contact:
+    name: miflow
+
+servers:
+  - url: http://localhost:8123
+    description: 本地开发（默认端口 8123）
+
+tags:
+  - name: devices
+    description: 设备管理（需 OAuth 登录）
+  - name: workflows
+    description: 工作流管理
+
+paths:
+  /api/devices:
+    get:
+      tags: [devices]
+      summary: 设备列表
+      description: 获取接入的米家设备列表，需 OAuth 登录。
+      operationId: devicesList
+      parameters:
+        - name: name
+          in: query
+          description: 按名称过滤
+          schema:
+            type: string
+        - name: getVirtual
+          in: query
+          description: 是否包含虚拟设备
+          schema:
+            type: boolean
+            default: false
+        - name: getHuami
+          in: query
+          description: 华米设备过滤（0=不过滤）
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: 设备列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/devices/{id}:
+    get:
+      tags: [devices]
+      summary: 设备详情
+      description: 获取单个设备详情，需 OAuth 登录。
+      operationId: deviceGet
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: 设备详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/devices/{id}/spec:
+    get:
+      tags: [devices]
+      summary: 设备 MIoT 规格
+      description: 获取设备的 MIoT SPEC（用于控制 UI），需 OAuth 登录。
+      operationId: deviceSpec
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: MIoT SPEC（JSON 格式）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelSpec'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/devices/{id}/control:
+    post:
+      tags: [devices]
+      summary: 设备控制
+      description: 通过 MIoT 命令文本控制设备（等价于 m CLI），需 OAuth 登录。
+      operationId: deviceControl
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceControlRequest'
+      responses:
+        '200':
+          description: 控制成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/workflows:
+    get:
+      tags: [workflows]
+      summary: 工作流列表
+      description: 获取所有工作流。
+      operationId: workflowsList
+      responses:
+        '200':
+          description: 工作流列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workflow'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [workflows]
+      summary: 创建工作流
+      description: 创建新工作流。
+      operationId: workflowCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowInput'
+      responses:
+        '200':
+          description: 创建成功，返回工作流
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/workflows/{id}:
+    get:
+      tags: [workflows]
+      summary: 工作流详情
+      description: 获取单个工作流。
+      operationId: workflowGet
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      responses:
+        '200':
+          description: 工作流详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [workflows]
+      summary: 更新工作流
+      description: 更新指定工作流。
+      operationId: workflowUpdate
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowInput'
+      responses:
+        '200':
+          description: 更新成功，返回工作流
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [workflows]
+      summary: 删除工作流
+      description: 删除指定工作流。
+      operationId: workflowDelete
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      responses:
+        '204':
+          description: 删除成功，无响应体
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/workflows/{id}/run:
+    post:
+      tags: [workflows]
+      summary: 执行工作流
+      description: 异步执行指定工作流，需 OAuth 登录。
+      operationId: workflowRun
+      parameters:
+        - $ref: '#/components/parameters/WorkflowId'
+      responses:
+        '202':
+          description: 已接受，工作流已开始执行
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  parameters:
+    DeviceId:
+      name: id
+      in: path
+      required: true
+      description: 设备 ID（did）
+      schema:
+        type: string
+    WorkflowId:
+      name: id
+      in: path
+      required: true
+      description: 工作流 ID
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: 未登录，请先访问 /login 完成 OAuth 授权
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Device:
+      type: object
+      description: 米家接入设备（与 m list 输出一致）
+      properties:
+        did:
+          type: string
+          description: 设备 ID
+        model:
+          type: string
+          description: 型号，用于查询 miot-spec.org SPEC
+        name:
+          type: string
+          description: 设备名称
+        token:
+          type: string
+          description: 设备 token
+
+    DeviceControlRequest:
+      type: object
+      required: [command]
+      properties:
+        command:
+          type: string
+          description: MIoT 命令文本（如 "set_properties 2,1,1" 或自然语言指令）
+
+    ModelSpec:
+      type: object
+      description: MIoT 型号规格（来自 miot-spec.org）
+      properties:
+        type:
+          type: string
+        description:
+          type: string
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceSpec'
+
+    ServiceSpec:
+      type: object
+      properties:
+        iid:
+          type: integer
+        description:
+          type: string
+        type:
+          type: string
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropSpec'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionSpec'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSpec'
+
+    PropSpec:
+      type: object
+      properties:
+        iid:
+          type: integer
+        description:
+          type: string
+        format:
+          type: string
+        access:
+          type: array
+          items:
+            type: string
+
+    ActionSpec:
+      type: object
+      properties:
+        iid:
+          type: integer
+        description:
+          type: string
+        in:
+          type: array
+        out:
+          type: array
+
+    EventSpec:
+      type: object
+      properties:
+        iid:
+          type: integer
+        description:
+          type: string
+        arguments:
+          type: array
+
+    Workflow:
+      type: object
+      description: 工作流
+      properties:
+        id:
+          type: string
+          description: 工作流 ID
+        name:
+          type: string
+          description: 名称
+        description:
+          type: string
+          description: 描述
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Step'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WorkflowInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: 名称（必填）
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Step'
+
+    Step:
+      type: object
+      description: 工作流步骤
+      properties:
+        type:
+          type: string
+          enum: [tts, play_url, miio, delay]
+          description: 步骤类型
+        label:
+          type: string
+        device:
+          type: string
+          description: 设备 ID（tts/play_url 等）
+        text:
+          type: string
+          description: TTS 文本
+        url:
+          type: string
+          description: 播放 URL（play_url）
+        miio_text:
+          type: string
+          description: MIoT 命令文本（miio）
+        duration_ms:
+          type: integer
+          description: 延迟毫秒数（delay）
+
+    StatusOk:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+    RunStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          example: started
+        id:
+          type: string
+          description: 工作流 ID
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: 错误信息

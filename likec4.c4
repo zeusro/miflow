@@ -1,0 +1,157 @@
+// miflow 项目架构 - LikeC4 格式
+// 参考: https://github.com/likec4/likec4
+// 小米 IOT 自定义控制流
+
+specification {
+  element actor {
+    style {
+      shape person
+    }
+  }
+  element system
+  element component
+  element service
+  element webapp
+  element database
+  element cli
+  element external-system
+}
+
+model {
+
+  user = actor '用户' {
+    description '使用 miflow 控制小米/米家设备的用户'
+    -> miflow '使用'
+  }
+
+  miflow = system 'miflow 小米 IOT 控制流' {
+
+    description '小米 IOT 自定义控制流，基于 ha_xiaomi_home OAuth 2.0 接入'
+
+    // 核心命令
+    m = cli 'm CLI' {
+      icon tech:terminal
+      technology 'Go'
+      description '小米云服务命令行：OAuth 登录、设备列表、MIoT 属性/动作、小爱播报、Mina 控制'
+      -> xiaomi-oauth 'OAuth 2.0 授权'
+      -> xiaomi-home-api '设备控制 / MIoT'
+    }
+
+    web = webapp 'Web 服务' {
+      icon tech:go
+      technology 'GoFrame'
+      description 'OAuth 登录、设备管理、工作流编排；监听 :8123'
+      -> xiaomi-oauth 'OAuth 回调'
+      -> xiaomi-home-api '设备 API'
+      -> workflow-db '工作流存储'
+    }
+
+    flow = service 'Flow 服务' {
+      icon tech:go
+      technology 'Go'
+      description '可视化控制流：tts/play_url/miio/delay 步骤编排；监听 :18090'
+      -> xiaomi-home-api '执行 MIoT / Mina'
+      -> flow-store 'flows.json 持久化'
+    }
+
+    mp3 = service 'MP3 服务' {
+      icon tech:go
+      technology 'Go'
+      description 'HTTP 文件服务，将本地路径映射为 URL 供局域网设备访问；监听 :8090'
+    }
+
+    // 工具命令
+    miiot = cli 'miiot CLI' {
+      icon tech:terminal
+      technology 'Go'
+      description '验证 m list 型号与 home.miot-spec.com Spec 1:1 匹配'
+      -> xiaomi-home-api '获取设备列表'
+      -> miot-spec '校验规格'
+    }
+
+    scrape-specs = cli 'scrape-specs CLI' {
+      icon tech:terminal
+      technology 'Go'
+      description '从 m list 爬取各型号技术说明 URL，输出 Markdown 表格'
+      -> miot-spec '抓取规格页'
+    }
+
+    // 内部组件
+    config = component 'Config' {
+      description 'YAML 配置加载，环境变量覆盖；支持 .config.yaml、~/.miflow.yaml'
+    }
+
+    miaccount = component 'miaccount' {
+      description 'OAuth 2.0 客户端、Token 存储 (~/.mi.token)'
+    }
+
+    miioservice = component 'miioservice' {
+      description 'MiIO/MIoT API 封装，对接 ha.api.io.mi.com'
+    }
+
+    device = component 'device' {
+      description '设备领域：列表、规格、属性读写、动作执行'
+    }
+
+    miiot-pkg = component 'miiot' {
+      description '设备型号规格：xiaomi/chuangmi/bean 等，与 home.miot-spec.com 1:1 匹配'
+    }
+
+    flow-store = database 'Flow 数据' {
+      description 'flowdata/flows.json，Flow 服务配置持久化'
+    }
+
+    workflow-db = database 'Workflow 数据库' {
+      description 'webdata SQLite，Web 工作流 CRUD'
+    }
+
+    // 内部依赖
+    m -> config
+    m -> miaccount
+    m -> miioservice
+    m -> device
+    web -> config
+    web -> miaccount
+    web -> miioservice
+    web -> device
+    flow -> config
+    flow -> miaccount
+    flow -> miioservice
+    device -> miioservice
+    miiot -> miiot-pkg
+  }
+
+  // 外部系统
+  xiaomi-oauth = external-system 'Xiaomi OAuth' {
+    technology 'OAuth 2.0'
+    description 'account.xiaomi.com 授权，回调 homeassistant.local:8123/callback'
+  }
+
+  xiaomi-home-api = external-system 'Xiaomi Home API' {
+    technology 'REST'
+    description 'ha.api.io.mi.com：设备列表、MIoT 属性/动作、Mina 小爱播报'
+  }
+
+  miot-spec = external-system 'MIoT Spec' {
+    technology 'HTTP'
+    description 'home.miot-spec.com、miot-spec.org：型号规格、URN 映射'
+  }
+}
+
+views {
+
+  view index {
+    title 'miflow 系统架构'
+    include *, miflow.*
+  }
+
+  view commands {
+    title '命令与入口'
+    include user, miflow.m, miflow.web, miflow.flow, miflow.mp3, miflow.miiot, miflow.scrape-specs
+  }
+
+  view external {
+    title '外部依赖'
+    include miflow, xiaomi-oauth, xiaomi-home-api, miot-spec
+  }
+}

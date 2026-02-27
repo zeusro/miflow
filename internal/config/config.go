@@ -59,8 +59,8 @@ type Config struct {
 	// Web 服务（cmd/web，OAuth 登录页）
 	Web WebConfig `yaml:"web"`
 
-	// xiaomusic
-	Xiaomusic XiaomusicConfig `yaml:"xiaomusic"`
+	// Mp3 服务（cmd/mp3，HTTP 文件服务）
+	Mp3 Mp3Config `yaml:"mp3"`
 
 	// MiIO 相关
 	MiIO MiIOConfig `yaml:"miio"`
@@ -96,11 +96,10 @@ type WebConfig struct {
 	DataDir string `yaml:"data_dir"` // SQLite 等数据目录，默认 ./webdata
 }
 
-// XiaomusicConfig for xiaomusic CLI.
-type XiaomusicConfig struct {
-	MusicDir string `yaml:"music_dir"`
-	Addr     string `yaml:"addr"`
-	Host     string `yaml:"host"` // 本机 IP，供音箱访问 play-file 的 HTTP 服务，空则自动检测
+// Mp3Config for mp3 HTTP file server.
+type Mp3Config struct {
+	Addr string `yaml:"addr"`
+	Host string `yaml:"host"` // 本机 IP，供局域网访问，空则自动检测
 }
 
 // MiIOConfig for MiIO service.
@@ -158,9 +157,8 @@ func defaultConfig() *Config {
 			Addr:    ":8123",
 			DataDir: "./webdata",
 		},
-		Xiaomusic: XiaomusicConfig{
-			MusicDir: "./music",
-			Addr:     ":8090",
+		Mp3: Mp3Config{
+			Addr: ":8090",
 		},
 		MiIO: MiIOConfig{
 			SpecsCachePath: "",
@@ -183,7 +181,7 @@ func mergeConfig(dst, src *Config) {
 	mergeHTTP(&dst.HTTP, &src.HTTP)
 	mergeFlow(&dst.Flow, &src.Flow)
 	mergeWeb(&dst.Web, &src.Web)
-	mergeXiaomusic(&dst.Xiaomusic, &src.Xiaomusic)
+	mergeMp3(&dst.Mp3, &src.Mp3)
 	mergeMiIO(&dst.MiIO, &src.MiIO)
 }
 
@@ -238,10 +236,7 @@ func mergeWeb(dst, src *WebConfig) {
 	}
 }
 
-func mergeXiaomusic(dst, src *XiaomusicConfig) {
-	if src.MusicDir != "" {
-		dst.MusicDir = src.MusicDir
-	}
+func mergeMp3(dst, src *Mp3Config) {
 	if src.Addr != "" {
 		dst.Addr = src.Addr
 	}

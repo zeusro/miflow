@@ -1,5 +1,32 @@
 # 改动
 
+## LikeC4 项目架构图
+
+2026-02-27
+
+- 按 oracle.md 规范，使用 LikeC4 DSL 生成项目架构，导出到 likec4.c4
+- 模型包含：用户、miflow 系统（m CLI、Web、Flow、mp3、miiot、scrape-specs）、内部组件（config、miaccount、miioservice、device、miiot）、外部依赖（Xiaomi OAuth、Xiaomi Home API、MIoT Spec）
+- 定义 3 个视图：index（全架构）、commands（命令入口）、external（外部依赖）
+- 导出 PNG 至 `docs/architecture/`，README.md 增加架构图展示
+- 参考：https://github.com/likec4/likec4
+
+## Web API OpenAPI 3 文档
+
+2026-02-27
+
+- 按 oracle.md 规范，整理 web/api 接口，生成 openAPI3.yaml
+- 文档覆盖：设备域（/api/devices 列表、详情、spec、control）与工作流域（/api/workflows 增删改查、run）
+- 遵循 OpenAPI 3.0.3 标准，包含请求/响应 schema、认证说明、错误码
+
+## 移除 xiaomusic 命令
+
+2026-02-27
+
+- 删除 `cmd/xiaomusic/main.go` 及 `pkg/cmd/xiaomusic` 包（play-url、play-file 子命令）
+- 配置：`XiaomusicConfig` 改为 `Mp3Config`，仅保留 mp3 命令所需的 addr、host
+- Makefile 移除 xiaomusic 构建目标
+- `cmd/mp3` 改为使用 `cfg.Mp3` 作为默认配置
+
 ## OAuth /callback 8123 程序 token 响应与存储修复
 
 2026-02-25

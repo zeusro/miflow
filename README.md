@@ -2,6 +2,12 @@
 
 小米 IOT 自定义控制流
 
+## 架构
+
+![miflow 系统架构](docs/architecture/index.png)
+
+> 架构图由 [LikeC4](https://github.com/likec4/likec4) 从 `likec4.c4` 生成。`npx likec4 start` 可预览，`npx likec4 export png -o docs/architecture --flat` 可重新导出。
+
 ## m - 小米云服务命令行 (OAuth 2.0)
 
 本仓库包含基于 [ha_xiaomi_home](https://github.com/XiaoMi/ha_xiaomi_home) OAuth 2.0 接入方式的 Go 实现，命令行入口为 `m`。

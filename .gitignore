@@ -4,7 +4,6 @@
 # Binaries for programs and plugins
 /m
 /mp3
-/xiaomusic
 /flow
 /bin/
 /dist/
@@ -46,7 +45,8 @@ config.yaml
 .idea/
 .vscode/
 
-# Web frontend
+# Node (likec4, web frontend)
+node_modules/
 web/node_modules/
 
 # Web data (SQLite)
@@ -54,3 +54,4 @@ webdata/
 web/web
 ./flow
 miflow-web
+xiaomusic
