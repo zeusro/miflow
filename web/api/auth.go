@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/zeusro/miflow/internal/constants"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/pkg/i18n"
 	"github.com/zeusro/miflow/web"
@@ -23,6 +24,8 @@ func RequireAuth(a *web.App, r *ghttp.Request) bool {
 // Login 处理 GET /login - 发起 OAuth 流程。
 func Login(a *web.App, r *ghttp.Request) {
 	oc := miaccount.NewOAuthClient()
+	// 按 docs/auth.md，Web 流程固定使用 HA 回调 URL，与小米 OAuth 白名单一致
+	// oc.RedirectURI = constants.DefaultOAuthRedirectURI
 	a.OAuthStore().Put(oc.State, oc)
 
 	// 按 docs/auth.md 流程，使用固定 Auth URL
@@ -34,7 +37,7 @@ func Login(a *web.App, r *ghttp.Request) {
 		"state":         {oc.State},
 		"skip_confirm":  {"true"},
 	}
-	authURL := miaccount.OAuth2AuthURL + "?" + params.Encode()
+	authURL := constants.OAuth2AuthURL + "?" + params.Encode()
 	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	data, err := web.RenderLoginBytes(authURL, lang)
 	if err != nil {

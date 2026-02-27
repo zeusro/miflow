@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/internal/constants"
 )
 
 // HAClient 是 ha.api.io.mi.com 的 HTTP 客户端（OAuth Bearer token）。
@@ -28,7 +29,7 @@ func NewHAClient(t *OAuthToken, tokenStore *TokenStore) *HAClient {
 	cfg := config.Get()
 	apiHost := cfg.OAuth.APIHost
 	if apiHost == "" {
-		apiHost = OAuth2APIHost
+		apiHost = constants.OAuth2APIHost
 	}
 	host := apiHost
 	if t.CloudServer != "" && t.CloudServer != "cn" {
@@ -39,7 +40,7 @@ func NewHAClient(t *OAuthToken, tokenStore *TokenStore) *HAClient {
 		clientID = cfg.OAuth.ClientID
 	}
 	if clientID == "" {
-		clientID = OAuth2ClientID
+		clientID = constants.OAuth2ClientID
 	}
 	timeout := cfg.HTTP.TimeoutSeconds
 	if timeout <= 0 {

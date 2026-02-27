@@ -19,6 +19,7 @@ import (
 	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/mihomeapi"
+	"github.com/zeusro/miflow/miiot/specs"
 	"github.com/zeusro/miflow/pkg/i18n"
 )
 
@@ -235,7 +236,7 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 		json.Unmarshal(data, &allSpecs)
 	}
 	if len(allSpecs) == 0 {
-		resp, err := http.DefaultClient.Get("http://miot-spec.org/miot-spec-v2/instances?status=all")
+		resp, err := http.DefaultClient.Get(specs.InstancesURL)
 		if err != nil {
 			return nil, err
 		}
@@ -286,7 +287,7 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 			}
 		}
 	}
-	reqURL := "http://miot-spec.org/miot-spec-v2/instance?type=" + url.QueryEscape(typ)
+	reqURL := specs.InstanceURL + "?type=" + url.QueryEscape(typ)
 	resp, err := http.DefaultClient.Get(reqURL)
 	if err != nil {
 		return nil, err

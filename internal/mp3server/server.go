@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/zeusro/miflow/internal/constants"
 )
 
 // Config 保存服务器配置。
@@ -95,7 +97,7 @@ func (r *statusRecorder) WriteHeader(code int) {
 func (s *Server) Start() error {
 	addr := s.cfg.Addr
 	if addr == "" {
-		addr = ":8090"
+		addr = constants.DefaultMp3Addr
 	}
 	if port := parsePort(addr); port != "" {
 		killProcessOnPort(port)
@@ -113,7 +115,7 @@ func (s *Server) Start() error {
 	}
 	_, s.port, _ = net.SplitHostPort(listenAddr)
 	if s.port == "" {
-		s.port = "8090"
+		s.port = constants.DefaultMp3Port
 	}
 	go func() {
 		close(s.ready)
@@ -155,11 +157,11 @@ func (s *Server) ResolveHostPort() {
 	}
 	addr := s.cfg.Addr
 	if addr == "" {
-		addr = ":8090"
+		addr = constants.DefaultMp3Addr
 	}
 	s.port = parsePort(addr)
 	if s.port == "" {
-		s.port = "8090"
+		s.port = constants.DefaultMp3Port
 	}
 	s.host = s.cfg.Host
 	if s.host == "" {

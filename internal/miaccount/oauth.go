@@ -17,17 +17,8 @@ import (
 	"time"
 
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/internal/constants"
 	"github.com/zeusro/miflow/pkg/i18n"
-)
-
-// OAuth2 常量（默认值，可由配置覆盖）
-const (
-	OAuth2ClientID   = "2882303761520251711"
-	OAuth2AuthURL    = "https://account.xiaomi.com/oauth2/authorize"
-	OAuth2APIHost    = "ha.api.io.mi.com"
-	OAuth2TokenPath  = "/app/v2/ha/oauth/get_token"
-	DefaultCloudSvr  = "cn"
-	TokenExpireRatio = 0.7
 )
 
 // OAuthToken 保存 OAuth 2.0 认证数据（替代基于密码的 token）。
@@ -69,11 +60,11 @@ func NewOAuthClient() *OAuthClient {
 	cfg := config.Get()
 	clientID := cfg.OAuth.ClientID
 	if clientID == "" {
-		clientID = OAuth2ClientID
+		clientID = constants.OAuth2ClientID
 	}
 	redirectURI := cfg.OAuth.RedirectURI
 	if redirectURI == "" {
-		redirectURI = "http://homeassistant.local:8123/callback"
+		redirectURI = constants.DefaultOAuthRedirectURI
 	}
 	deviceID := "ha." + RandString(16)
 	if d := cfg.OAuth.DeviceID; d != "" {
@@ -83,7 +74,7 @@ func NewOAuthClient() *OAuthClient {
 	state := hex.EncodeToString(h[:])
 	cloud := cfg.OAuth.CloudServer
 	if cloud == "" {
-		cloud = DefaultCloudSvr
+		cloud = constants.DefaultCloudSvr
 	}
 	timeout := 30
 	if cfg.HTTP.TimeoutSeconds > 0 {
@@ -120,7 +111,7 @@ func (c *OAuthClient) GenAuthURL(redirectURI, state string, skipConfirm bool) st
 	}
 	authURL := config.Get().OAuth.AuthURL
 	if authURL == "" {
-		authURL = OAuth2AuthURL
+		authURL = constants.OAuth2AuthURL
 	}
 	return authURL + "?" + params.Encode()
 }
@@ -151,7 +142,7 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	cfg := config.Get()
 	apiHost := cfg.OAuth.APIHost
 	if apiHost == "" {
-		apiHost = OAuth2APIHost
+		apiHost = constants.OAuth2APIHost
 	}
 	host := apiHost
 	if c.CloudServer != "" && c.CloudServer != "cn" {
@@ -159,7 +150,7 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	}
 	tokenPath := cfg.OAuth.TokenPath
 	if tokenPath == "" {
-		tokenPath = OAuth2TokenPath
+		tokenPath = constants.OAuth2TokenPath
 	}
 	payload, _ := json.Marshal(data)
 	reqURL := "https://" + host + tokenPath + "?data=" + url.QueryEscape(string(payload))
@@ -207,7 +198,7 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	}
 	expireRatio := config.Get().OAuth.TokenExpireRatio
 	if expireRatio <= 0 {
-		expireRatio = TokenExpireRatio
+		expireRatio = constants.TokenExpireRatio
 	}
 	expiresTS := time.Now().Unix() + int64(float64(r.ExpiresIn)*expireRatio)
 	return &OAuthToken{

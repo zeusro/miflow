@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/zeusro/miflow/internal/constants"
 	"gopkg.in/yaml.v3"
 )
 
@@ -140,31 +141,31 @@ func defaultConfig() *Config {
 		Debug:     false,
 		TokenPath: tokenPath,
 		OAuth: OAuthConfig{
-			ClientID:         "2882303761520251711",
-			RedirectURI:      "http://homeassistant.local:8123/callback",
-			CloudServer:      "cn",
-			APIHost:          "ha.api.io.mi.com",
-			TokenPath:        "/app/v2/ha/oauth/get_token",
-			AuthURL:          "https://account.xiaomi.com/oauth2/authorize",
-			TokenExpireRatio: 0.7,
+			ClientID:         constants.OAuth2ClientID,
+			RedirectURI:      constants.DefaultOAuthRedirectURI,
+			CloudServer:      constants.DefaultCloudSvr,
+			APIHost:          constants.OAuth2APIHost,
+			TokenPath:        constants.OAuth2TokenPath,
+			AuthURL:          constants.OAuth2AuthURL,
+			TokenExpireRatio: constants.TokenExpireRatio,
 		},
 		HTTP: HTTPConfig{
 			TimeoutSeconds: 30,
 		},
 		Flow: FlowConfig{
-			Addr:    ":18090",
+			Addr:    constants.DefaultFlowAddr,
 			DataDir: "./flowdata",
 		},
 		Web: WebConfig{
-			Addr:    ":8123",
+			Addr:    constants.DefaultWebAddr,
 			DataDir: "./webdata",
 		},
 		Mp3: Mp3Config{
-			Addr: ":8090",
+			Addr: constants.DefaultMp3Addr,
 		},
 		MiIO: MiIOConfig{
 			SpecsCachePath: "",
-			CallbackPort:   8123,
+			CallbackPort:   constants.DefaultCallbackPort,
 		},
 	}
 }

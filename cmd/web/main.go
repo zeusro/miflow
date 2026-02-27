@@ -10,6 +10,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/internal/constants"
 	"github.com/zeusro/miflow/pkg/i18n"
 	"github.com/zeusro/miflow/web"
 	"github.com/zeusro/miflow/web/api"
@@ -24,7 +25,7 @@ func main() {
 	s := g.Server()
 	addr := config.Get().Web.Addr
 	if addr == "" {
-		addr = ":8123"
+		addr = constants.DefaultWebAddr
 	}
 	s.SetAddr(addr)
 

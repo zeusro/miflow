@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zeusro/miflow/internal/constants"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/pkg/i18n"
 )
@@ -59,7 +60,7 @@ func (c *Client) ensureToken() error {
 		oc.CloudServer = c.OAuthToken.CloudServer
 		oc.ClientID = c.OAuthToken.OAuthClientID
 		if oc.ClientID == "" {
-			oc.ClientID = miaccount.OAuth2ClientID
+			oc.ClientID = constants.OAuth2ClientID
 		}
 		oc.RedirectURI = c.OAuthToken.OAuthRedirect
 		oc.DeviceID = c.OAuthToken.DeviceID
