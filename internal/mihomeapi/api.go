@@ -133,6 +133,46 @@ func (s *Service) SetProps(params []map[string]interface{}) ([]map[string]interf
 	return out, nil
 }
 
+// GetHome 获取家庭、房间、设备结构。参考 ha_xiaomi_home homeroom/gethome。
+func (s *Service) GetHome() ([]map[string]interface{}, error) {
+	data := map[string]interface{}{
+		"limit":           150,
+		"fetch_share":     true,
+		"fetch_share_dev": true,
+		"plat_form":       0,
+		"app_ver":         9,
+	}
+	res, err := s.Client.Post("/app/v2/homeroom/gethome", data)
+	if err != nil {
+		return nil, err
+	}
+	result, _ := res["result"].(map[string]interface{})
+	if result == nil {
+		return nil, fmt.Errorf("invalid gethome response")
+	}
+	out := make([]map[string]interface{}, 0)
+	for _, key := range []string{"homelist", "share_home_list"} {
+		list, _ := result[key].([]interface{})
+		for _, it := range list {
+			m, ok := it.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if _, hasID := m["id"]; !hasID {
+				continue
+			}
+			if _, hasName := m["name"]; !hasName {
+				continue
+			}
+			if _, hasRoom := m["roomlist"]; !hasRoom {
+				continue
+			}
+			out = append(out, m)
+		}
+	}
+	return out, nil
+}
+
 // Action 执行 MIoT 动作。
 func (s *Service) Action(did string, siid, aiid int, in []interface{}) (map[string]interface{}, error) {
 	res, err := s.Client.Post("/app/v2/miotspec/action", map[string]interface{}{

@@ -19,6 +19,26 @@ tags:
     description: 工作流管理
 
 paths:
+  /api/rooms:
+    get:
+      tags: [devices]
+      summary: 房间与设备
+      description: 获取家庭、房间及设备列表（按房间分组），需 OAuth 登录。
+      operationId: roomsList
+      responses:
+        '200':
+          description: 家庭、房间及设备列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HomeWithRooms'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/devices:
     get:
       tags: [devices]
@@ -303,6 +323,36 @@ components:
             $ref: '#/components/schemas/Error'
 
   schemas:
+    HomeWithRooms:
+      type: object
+      description: 家庭及其房间
+      properties:
+        home_id:
+          type: string
+          description: 家庭 ID
+        home_name:
+          type: string
+          description: 家庭名称
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomWithDevices'
+
+    RoomWithDevices:
+      type: object
+      description: 房间及其设备
+      properties:
+        room_id:
+          type: string
+          description: 房间 ID
+        room_name:
+          type: string
+          description: 房间名称
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+
     Device:
       type: object
       description: 米家接入设备（与 m list 输出一致）

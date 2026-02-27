@@ -96,6 +96,31 @@ func RenderCallbackSuccessBytes(lang string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// RenderCallbackCLI 将 CLI OAuth 回调成功页（无外部 CSS）写入 w。
+func RenderCallbackCLI(w io.Writer, lang string) error {
+	if lang == "" {
+		lang = i18n.DefaultLang()
+	}
+	data := map[string]string{
+		"Title":           i18n.T(lang, "web.callback.title", nil),
+		"Success":         i18n.T(lang, "web.callback.success", nil),
+		"Done":            i18n.T(lang, "web.callback.done", nil),
+		"Countdown":       i18n.T(lang, "web.callback.countdown", map[string]interface{}{"N": 5}),
+		"CountdownSuffix": i18n.T(lang, "web.callback.countdown_suffix", nil),
+		"Closing":         i18n.T(lang, "web.callback.closing", nil),
+	}
+	return Templates.ExecuteTemplate(w, "callback-cli.html", data)
+}
+
+// RenderCallbackCLIBytes 返回 CLI 回调成功页 HTML 的字节形式。
+func RenderCallbackCLIBytes(lang string) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := RenderCallbackCLI(&buf, lang); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 // RenderDefault 将默认备用首页写入 w。
 func RenderDefault(w io.Writer, lang string) error {
 	if lang == "" {

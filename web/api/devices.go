@@ -11,6 +11,19 @@ import (
 	"github.com/zeusro/miflow/web"
 )
 
+// RoomsList 处理 GET /api/rooms - 列出房间及设备
+func RoomsList(a *web.App, r *ghttp.Request) {
+	if !RequireAuth(a, r) {
+		return
+	}
+	list, err := a.DeviceAPI().RoomsWithDevices()
+	if err != nil {
+		Err(r, http.StatusInternalServerError, err.Error())
+		return
+	}
+	JSON(r, http.StatusOK, list)
+}
+
 // DevicesList 处理 GET /api/devices - 列出设备
 func DevicesList(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {

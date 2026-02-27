@@ -56,6 +56,8 @@
   {"id": "web.login.click_if_not", "translation": "If not redirected automatically, click the button below"},
   {"id": "web.login.go_auth", "translation": "Go to authorize"},
   {"id": "web.error.back_home", "translation": "Back to home"},
+  {"id": "web.rooms.other", "translation": "Other"},
+  {"id": "web.rooms.title", "translation": "Rooms & Devices - miflow"},
   {"id": "web.callback.title", "translation": "Login success - miflow"},
   {"id": "web.callback.success", "translation": "Login successful"},
   {"id": "web.callback.done", "translation": "Mi Home OAuth authorization completed, token saved."},

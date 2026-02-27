@@ -225,6 +225,11 @@ func (s *Service) DeviceList(name string, getVirtualModel bool, getHuamiDevices 
 	return s.ha.DeviceList(name, getVirtualModel, getHuamiDevices)
 }
 
+// GetHome 获取家庭、房间结构。参考 ha_xiaomi_home homeroom/gethome。
+func (s *Service) GetHome() ([]map[string]interface{}, error) {
+	return s.ha.GetHome()
+}
+
 // MiotSpec 从 miot-spec.org 获取 MIoT 规格（公开，无需认证）。
 func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 	specsPath := config.Get().MiIO.SpecsCachePath

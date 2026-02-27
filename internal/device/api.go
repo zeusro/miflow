@@ -29,6 +29,73 @@ func (a *API) List(name string, getVirtualModel bool, getHuamiDevices int) ([]*D
 	return out, nil
 }
 
+// RoomsWithDevices 获取家庭、房间及设备列表。
+func (a *API) RoomsWithDevices() ([]*HomeWithRooms, error) {
+	homes, err := a.io.GetHome()
+	if err != nil {
+		return nil, err
+	}
+	devMap := make(map[string]*Device)
+	devList, err := a.List("", false, 0)
+	if err == nil {
+		for _, d := range devList {
+			devMap[d.DID] = d
+		}
+	}
+	out := make([]*HomeWithRooms, 0, len(homes))
+	for _, h := range homes {
+		homeID := idStr(h["id"])
+		homeName, _ := h["name"].(string)
+		roomList, _ := h["roomlist"].([]interface{})
+		assignedDIDs := make(map[string]bool)
+		rooms := make([]*RoomWithDevices, 0, len(roomList)+1)
+		for _, r := range roomList {
+			rm, ok := r.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			roomID := idStr(rm["id"])
+			roomName, _ := rm["name"].(string)
+			devices := devicesFromDIDs(rm["dids"], devMap, assignedDIDs)
+			rooms = append(rooms, &RoomWithDevices{RoomID: roomID, RoomName: roomName, Devices: devices})
+		}
+		homeDIDs, _ := h["dids"].([]interface{})
+		if unassigned := devicesFromDIDs(homeDIDs, devMap, assignedDIDs); len(unassigned) > 0 {
+			rooms = append(rooms, &RoomWithDevices{RoomID: "_other", RoomName: i18n.T(i18n.DefaultLang(), "web.rooms.other", nil), Devices: unassigned})
+		}
+		out = append(out, &HomeWithRooms{HomeID: homeID, HomeName: homeName, Rooms: rooms})
+	}
+	return out, nil
+}
+
+func idStr(v interface{}) string {
+	switch x := v.(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", x)
+	case string:
+		return x
+	}
+	return ""
+}
+
+func devicesFromDIDs(dids interface{}, devMap map[string]*Device, assigned map[string]bool) []*Device {
+	list, _ := dids.([]interface{})
+	out := make([]*Device, 0, len(list))
+	for _, didIt := range list {
+		did, _ := didIt.(string)
+		if did == "" || assigned[did] {
+			continue
+		}
+		assigned[did] = true
+		if d, ok := devMap[did]; ok {
+			out = append(out, d)
+		} else {
+			out = append(out, &Device{DID: did, Name: did})
+		}
+	}
+	return out
+}
+
 // Get 按 did 或 name 获取单个设备，未找到返回 nil 和错误。
 func (a *API) Get(didOrName string) (*Device, error) {
 	if didOrName == "" {

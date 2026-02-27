@@ -91,6 +91,25 @@ func (a *App) RunWorkflow(w *workflow.Workflow) {
 	}
 }
 
+// RefreshToken 重新加载 token 并初始化 miio/deviceAPI/mina。登录成功后调用。
+func (a *App) RefreshToken() error {
+	token := (&miaccount.TokenStore{Path: a.tokenPath}).LoadOAuth()
+	if token == nil || !token.IsValid() {
+		a.deviceAPI = nil
+		a.miio = nil
+		a.mina = nil
+		return nil
+	}
+	miio, err := miioservice.New(token, a.tokenPath)
+	if err != nil {
+		return err
+	}
+	a.miio = miio
+	a.deviceAPI = device.NewAPI(miio)
+	a.mina = minaservice.NewWithMinaAPI(miio, token, a.tokenPath)
+	return nil
+}
+
 // NewApp 创建新的 App 实例。
 func NewApp() (*App, error) {
 	cfg := config.Get()

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>{{.Title}}</title>
+</head>
+<body style="font-family:sans-serif;text-align:center;padding:3em;" data-countdown-suffix="{{.CountdownSuffix}}" data-closing="{{.Closing}}">
+  <h2 style="color:#22c55e;">✓ {{.Success}}</h2>
+  <p>{{.Done}}</p>
+  <p id="countdown" style="font-size:1.2em;color:#64748b;">{{.Countdown}}</p>
+  <script>
+    (function(){
+      var n=5;
+      var el=document.getElementById('countdown');
+      var suffix=document.body.getAttribute('data-countdown-suffix')||" 秒后自动关闭此页面...";
+      var closing=document.body.getAttribute('data-closing')||"正在关闭...";
+      var t=setInterval(function(){
+        n--;
+        if(n>0) el.textContent=n+suffix;
+        else {
+          clearInterval(t);
+          el.textContent=closing;
+          try{window.close()}catch(e){}
+        }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>

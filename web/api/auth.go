@@ -41,8 +41,7 @@ func Login(a *web.App, r *ghttp.Request) {
 	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	data, err := web.RenderLoginBytes(authURL, lang)
 	if err != nil {
-		r.Response.WriteStatus(http.StatusInternalServerError)
-		r.Response.Write([]byte(i18n.T(lang, "web.auth.template_failed", nil)))
+		r.Response.WriteStatus(http.StatusInternalServerError, []byte(i18n.T(lang, "web.auth.template_failed", nil)))
 		return
 	}
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -59,11 +58,11 @@ func Callback(a *web.App, r *ghttp.Request) {
 	writeError := func(status int, title, message string) {
 		data, err := web.RenderErrorBytes(title, message, lang)
 		if err != nil {
-			r.Response.WriteStatus(status)
+			r.Response.WriteHeader(status)
 			r.Response.Write([]byte(title + ": " + message))
 			return
 		}
-		r.Response.WriteStatus(status)
+		r.Response.WriteHeader(status)
 		r.Response.Write(data)
 	}
 
@@ -94,12 +93,10 @@ func Callback(a *web.App, r *ghttp.Request) {
 		return
 	}
 
-	data, err := web.RenderCallbackSuccessBytes(lang)
-	if err != nil {
-		r.Response.WriteStatus(http.StatusOK)
-		r.Response.Write([]byte(i18n.T(lang, "web.auth.login_success", nil)))
+	if err := a.RefreshToken(); err != nil {
+		writeError(http.StatusInternalServerError, i18n.T(lang, "web.auth.token_save_failed", nil), err.Error())
 		return
 	}
-	r.Response.WriteStatus(http.StatusOK)
-	r.Response.Write(data)
+
+	r.Response.RedirectTo("/rooms")
 }

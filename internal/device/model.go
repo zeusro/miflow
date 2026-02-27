@@ -13,6 +13,20 @@ type Device struct {
 	Token string `json:"token"` // 设备 token
 }
 
+// RoomWithDevices 房间及其设备。
+type RoomWithDevices struct {
+	RoomID   string     `json:"room_id"`
+	RoomName string     `json:"room_name"`
+	Devices  []*Device  `json:"devices"`
+}
+
+// HomeWithRooms 家庭及其房间。
+type HomeWithRooms struct {
+	HomeID   string             `json:"home_id"`
+	HomeName string             `json:"home_name"`
+	Rooms    []*RoomWithDevices `json:"rooms"`
+}
+
 // API 封装接入设备的操作，基于 m list 设备列表与 docs/spec.md 的 SPEC 查询流程。
 type API struct {
 	io *miioservice.Service

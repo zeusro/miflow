@@ -93,7 +93,7 @@ func WorkflowDelete(a *web.App, r *ghttp.Request) {
 		Err(r, http.StatusInternalServerError, err.Error())
 		return
 	}
-	r.Response.WriteStatus(http.StatusNoContent)
+	r.Response.WriteHeader(http.StatusNoContent)
 }
 
 // WorkflowRun 处理 POST /api/workflows/:id/run - 运行工作流

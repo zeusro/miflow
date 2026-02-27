@@ -1,5 +1,17 @@
 # 改动
 
+## 登录成功跳转房间与设备页
+
+2026-02-27
+
+- OAuth 回调成功后改为重定向到 `/rooms` 页面，不再显示倒计时关闭页
+- 新增 `/rooms` 页面：展示所有家庭、房间及对应设备
+- 新增 `/api/rooms` 接口：调用 homeroom/gethome 获取家庭房间结构，返回按房间分组的设备列表
+- 新增 `mihomeapi.GetHome()`、`miioservice.GetHome()`、`device.API.RoomsWithDevices()`
+- 新增 `web.App.RefreshToken()`：登录后重新加载 token 并初始化 deviceAPI
+- 新增 i18n：`web.rooms.title`、`web.rooms.other`
+- 更新 openAPI3.yaml：增加 /api/rooms 及 HomeWithRooms、RoomWithDevices schema
+
 ## Cobra 命令行架构重构
 
 2026-02-27

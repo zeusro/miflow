@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>房间与设备 - miflow</title>
+  <link href="/dist/output.css" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-slate-50">
+  <nav class="bg-white border-b border-slate-200 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <a href="/" class="text-slate-800 font-semibold">miflow</a>
+      <div class="flex gap-4">
+        <a href="/rooms" class="text-emerald-600 font-medium">房间</a>
+        <a href="/app" class="text-slate-600 hover:text-slate-900">设备管理</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-4">
+    <h1 class="text-2xl font-semibold text-slate-800 mb-6">房间与设备</h1>
+    <div id="rooms-error" class="hidden rounded-lg bg-red-50 border border-red-200 p-3 text-red-700 text-sm mb-4"></div>
+    <div id="rooms-list" class="space-y-8"></div>
+  </main>
+
+  <script>
+    function escapeHtml(s) {
+      if (!s) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    async function api(path) {
+      const res = await fetch(path);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || res.statusText);
+      }
+      return res.json();
+    }
+
+    async function loadRooms() {
+      try {
+        const homes = await api('/api/rooms');
+        const el = document.getElementById('rooms-list');
+        el.innerHTML = '';
+        document.getElementById('rooms-error').classList.add('hidden');
+
+        if (!homes || homes.length === 0) {
+          el.innerHTML = '<p class="text-slate-500">暂无家庭或房间数据</p>';
+          return;
+        }
+
+        homes.forEach(home => {
+          const homeSection = document.createElement('section');
+          homeSection.className = 'rounded-xl bg-white border border-slate-200 overflow-hidden';
+          homeSection.innerHTML = `
+            <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+              <h2 class="text-lg font-semibold text-slate-800">${escapeHtml(home.home_name || '我的家')}</h2>
+            </div>
+            <div class="p-4 space-y-6"></div>
+          `;
+          const roomsContainer = homeSection.querySelector('.space-y-6');
+
+          (home.rooms || []).forEach(room => {
+            const roomDiv = document.createElement('div');
+            roomDiv.className = 'border border-slate-200 rounded-lg overflow-hidden';
+            const devices = room.devices || [];
+            roomDiv.innerHTML = `
+              <div class="bg-slate-100/80 px-4 py-2 text-sm font-medium text-slate-700">
+                ${escapeHtml(room.room_name || '未命名房间')}
+                <span class="text-slate-500 font-normal ml-2">(${devices.length} 个设备)</span>
+              </div>
+              <div class="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"></div>
+            `;
+            const devicesGrid = roomDiv.querySelector('.grid');
+            devices.forEach(d => {
+              const card = document.createElement('a');
+              card.href = '/app';
+              card.className = 'block rounded-lg border border-slate-200 p-3 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors';
+              card.innerHTML = `
+                <div class="font-medium text-slate-800">${escapeHtml(d.name || d.did)}</div>
+                <div class="text-xs text-slate-500 mt-1">${escapeHtml(d.model || '')} · ${escapeHtml(d.did)}</div>
+              `;
+              devicesGrid.appendChild(card);
+            });
+            if (devices.length === 0) {
+              devicesGrid.innerHTML = '<p class="text-slate-400 text-sm col-span-full">暂无设备</p>';
+            }
+            roomsContainer.appendChild(roomDiv);
+          });
+
+          el.appendChild(homeSection);
+        });
+      } catch (e) {
+        document.getElementById('rooms-error').textContent = e.message;
+        document.getElementById('rooms-error').classList.remove('hidden');
+        document.getElementById('rooms-list').innerHTML = '';
+      }
+    }
+
+    loadRooms();
+  </script>
+</body>
+</html>

@@ -56,6 +56,8 @@
   {"id": "web.login.click_if_not", "translation": "如未自动跳转，请点击下方按钮"},
   {"id": "web.login.go_auth", "translation": "前往授权"},
   {"id": "web.error.back_home", "translation": "返回首页"},
+  {"id": "web.rooms.other", "translation": "其他"},
+  {"id": "web.rooms.title", "translation": "房间与设备 - miflow"},
   {"id": "web.callback.title", "translation": "登录成功 - miflow"},
   {"id": "web.callback.success", "translation": "登录成功"},
   {"id": "web.callback.done", "translation": "米家 OAuth 授权已完成，token 已保存。"},

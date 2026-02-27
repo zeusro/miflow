@@ -10,7 +10,7 @@ import (
 // JSON 写入 JSON 响应。
 func JSON(r *ghttp.Request, code int, v interface{}) {
 	r.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
-	r.Response.WriteStatus(code)
+	r.Response.WriteHeader(code)
 	if v != nil {
 		b, _ := json.Marshal(v)
 		r.Response.Write(b)

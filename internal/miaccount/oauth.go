@@ -214,9 +214,13 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	}, nil
 }
 
+// RenderSuccessHTML 用于渲染 OAuth 回调成功页，可由 web.RenderCallbackCLIBytes 提供。
+type RenderSuccessHTML func() ([]byte, error)
+
 // ServeCallback 启动 HTTP 服务接收 OAuth 回调并返回授权码。
 // 若端口已被占用，则提示用户手动粘贴重定向 URL 中的 code。
-func ServeCallback(port int) (string, error) {
+// renderSuccess 用于渲染成功页，传 nil 时使用简易 fallback；建议传入 web.RenderCallbackCLIBytes。
+func ServeCallback(port int, renderSuccess RenderSuccessHTML) (string, error) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		if strings.Contains(err.Error(), "address already in use") {
@@ -240,30 +244,15 @@ func ServeCallback(port int) (string, error) {
 		if authCode != "" {
 			ch <- authCode
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write([]byte(`<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>登录成功</title></head>
-<body style="font-family:sans-serif;text-align:center;padding:3em;">
-  <h2 style="color:#22c55e;">✓ 登录成功</h2>
-  <p>米家 OAuth 授权已完成，token 已保存。</p>
-  <p id="countdown" style="font-size:1.2em;color:#64748b;">5 秒后自动关闭此页面...</p>
-  <script>
-    (function(){
-      var n=5;
-      var el=document.getElementById('countdown');
-      var t=setInterval(function(){
-        n--;
-        if(n>0) el.textContent=n+' 秒后自动关闭此页面...';
-        else {
-          clearInterval(t);
-          el.textContent='正在关闭...';
-          try{window.close()}catch(e){}
-        }
-      }, 1000);
-    })();
-  </script>
-</body>
-</html>`))
+			html, err := []byte(nil), error(nil)
+			if renderSuccess != nil {
+				html, err = renderSuccess()
+			}
+			if html == nil || err != nil {
+				msg := i18n.T(i18n.DefaultLang(), "web.auth.login_success", nil)
+				html = []byte(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>OK</title></head><body><p>` + msg + `</p></body></html>`)
+			}
+			w.Write(html)
 		} else {
 			http.Error(w, "missing code", 400)
 		}

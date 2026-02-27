@@ -14,8 +14,8 @@ import (
 
 	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
-	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/miiocommand"
+	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
 	"github.com/zeusro/miflow/pkg/i18n"
 )
