@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/zeusro/miflow/internal/miaccount"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 const (
@@ -51,7 +52,7 @@ func New(t *miaccount.OAuthToken, tokenPath string) *Client {
 // ensureToken 确保 token 有效，过期时自动刷新。
 func (c *Client) ensureToken() error {
 	if c.OAuthToken == nil || c.OAuthToken.AccessToken == "" {
-		return fmt.Errorf("no OAuth token, run 'm login' first")
+		return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minaapi.no_token", nil))
 	}
 	if !c.OAuthToken.IsValid() && c.OAuthToken.RefreshToken != "" {
 		oc := miaccount.NewOAuthClient()
@@ -151,20 +152,20 @@ func (c *Client) MinaRequest(uri string, data map[string]interface{}) (map[strin
 		if len(snippet) > 200 {
 			snippet = snippet[:200] + "..."
 		}
-		return nil, fmt.Errorf("mina api: http %d, 返回 HTML 非 JSON（OAuth 可能不被支持，需 micoapi 认证）: %s", resp.StatusCode, snippet)
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minaapi.http_html", map[string]interface{}{"Code": resp.StatusCode, "Body": snippet}))
 	}
 
 	var out map[string]interface{}
 	if err := json.Unmarshal(raw, &out); err != nil {
 		bodyStr := truncate(string(raw), 150)
 		if bytes.Contains(raw, []byte("<")) {
-			return nil, fmt.Errorf("mina api: http %d, 返回 HTML 非 JSON（OAuth 可能不被 api2.mina.mi.com 支持，需 micoapi 认证）: %s", resp.StatusCode, bodyStr)
+			return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minaapi.http_html_api2", map[string]interface{}{"Code": resp.StatusCode, "Body": bodyStr}))
 		}
-		return nil, fmt.Errorf("mina api: %w (http %d, body: %s)", err, resp.StatusCode, bodyStr)
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minaapi.http_err", map[string]interface{}{"Err": err, "Code": resp.StatusCode, "Body": bodyStr}))
 	}
 	if code, ok := out["code"].(float64); ok && code != 0 {
 		msg, _ := out["message"].(string)
-		return nil, fmt.Errorf("mina api error %.0f: %s", code, msg)
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minaapi.api_error", map[string]interface{}{"Code": code, "Msg": msg}))
 	}
 	return out, nil
 }
@@ -178,7 +179,7 @@ func (c *Client) DeviceList(master int) ([]map[string]interface{}, error) {
 	}
 	data, _ := res["data"].([]interface{})
 	if data == nil {
-		return nil, fmt.Errorf("mina device_list: no data")
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minaapi.no_data", nil))
 	}
 	out := make([]map[string]interface{}, 0, len(data))
 	for _, it := range data {

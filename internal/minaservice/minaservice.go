@@ -7,6 +7,7 @@ import (
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaapi"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // TTS 使用智能音箱服务 (siid=5)。
@@ -78,7 +79,7 @@ func (s *Service) TextToSpeech(did string, text string) (map[string]interface{},
 		}
 		lastErr = err
 	}
-	return nil, fmt.Errorf("TTS failed: %w", lastErr)
+	return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minasvc.tts_failed", map[string]interface{}{"Err": lastErr}))
 }
 
 // GetMinaDeviceID 返回给定 MI_DID（did 或 name）对应的设备 ID。
@@ -110,12 +111,12 @@ func (s *Service) GetMinaDeviceID(miDID string) (string, error) {
 			return did, nil
 		}
 	}
-	return "", fmt.Errorf("device not found: %s (use 'm mina' to list)", miDID)
+	return "", fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minasvc.device_not_found", map[string]interface{}{"Did": miDID}))
 }
 
 // PlayerStop: OAuth 模式使用 MIoT。多数音箱有 play_control 动作；siid/aiid 因型号而异。
 func (s *Service) PlayerStop(deviceID string) (map[string]interface{}, error) {
-	return nil, fmt.Errorf("player_stop: use MIoT action for your speaker (m spec <model>)")
+	return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "minasvc.player_stop", nil))
 }
 
 // PlayerSetVolume: OAuth 模式未实现。

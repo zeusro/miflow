@@ -11,6 +11,7 @@ import (
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/miiot"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	store := &miaccount.TokenStore{Path: tokenPath}
 	token := store.LoadOAuth()
 	if token == nil || !token.IsValid() {
-		fmt.Fprintln(os.Stderr, "Error: no valid token, run 'm login' first")
+		fmt.Fprintln(os.Stderr, i18n.T(i18n.DefaultLang(), "cli.error.no_token", nil))
 		os.Exit(1)
 	}
 	ioSvc, err := miioservice.New(token, tokenPath)

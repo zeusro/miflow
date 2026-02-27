@@ -3,6 +3,8 @@ package device
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // LoadSpec 从 API 获取指定型号的 SPEC 并解析为 ModelSpec。
@@ -13,7 +15,7 @@ func (a *API) LoadSpec(model string) (*ModelSpec, error) {
 	}
 	m, ok := raw.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("device: invalid spec response for %s", model)
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "device.invalid_spec", map[string]interface{}{"Model": model}))
 	}
 	return parseModelSpec(m)
 }
@@ -152,7 +154,9 @@ func (s *ModelSpec) Summary() string {
 		props += len(svc.Properties)
 		actions += len(svc.Actions)
 	}
-	return fmt.Sprintf("services=%d properties=%d actions=%d", len(s.Services), props, actions)
+	return i18n.T(i18n.DefaultLang(), "device.spec_summary", map[string]interface{}{
+		"Services": len(s.Services), "Properties": props, "Actions": actions,
+	})
 }
 
 // ToJSON 序列化为 JSON。

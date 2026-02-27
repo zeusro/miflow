@@ -398,7 +398,7 @@ func setupAPI(t *testing.T) *device.API {
 	store := &miaccount.TokenStore{Path: tokenPath}
 	token := store.LoadOAuth()
 	if token == nil || !token.IsValid() {
-		t.Skip("no valid OAuth token, run 'm login' first")
+		t.Skip("no valid OAuth token, run m web")
 		return nil
 	}
 	ioSvc, err := miioservice.New(token, tokenPath)

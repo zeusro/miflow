@@ -7,6 +7,7 @@ import (
 
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/zeusro/miflow/internal/miiocommand"
+	"github.com/zeusro/miflow/pkg/i18n"
 	"github.com/zeusro/miflow/web"
 )
 
@@ -31,9 +32,10 @@ func DeviceGet(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
 	}
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	id := r.GetRouter("id").String()
 	if id == "" {
-		Err(r, http.StatusBadRequest, "device id required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.device_id_required", nil))
 		return
 	}
 	d, err := a.DeviceAPI().Get(id)
@@ -49,21 +51,22 @@ func DeviceControl(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
 	}
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	id := r.GetRouter("id").String()
 	if id == "" {
-		Err(r, http.StatusBadRequest, "device id required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.device_id_required", nil))
 		return
 	}
 	var body struct {
 		Command string `json:"command"`
 	}
 	if err := json.NewDecoder(r.Request.Body).Decode(&body); err != nil {
-		Err(r, http.StatusBadRequest, "invalid JSON")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.invalid_json", nil))
 		return
 	}
 	cmd := strings.TrimSpace(body.Command)
 	if cmd == "" {
-		Err(r, http.StatusBadRequest, "command required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.command_required", nil))
 		return
 	}
 	_, err := miiocommand.Run(a.Miio(), id, cmd, "web ")

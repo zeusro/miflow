@@ -18,7 +18,7 @@ func TestLoadAllModelSpecs(t *testing.T) {
 	store := &miaccount.TokenStore{Path: tokenPath}
 	token := store.LoadOAuth()
 	if token == nil || !token.IsValid() {
-		t.Skip("no valid OAuth token, run 'm login' first")
+		t.Skip("no valid OAuth token, run m web")
 	}
 	ioSvc, err := miioservice.New(token, tokenPath)
 	if err != nil {
@@ -53,7 +53,7 @@ func TestLoadSpec(t *testing.T) {
 	store := &miaccount.TokenStore{Path: tokenPath}
 	token := store.LoadOAuth()
 	if token == nil || !token.IsValid() {
-		t.Skip("no valid OAuth token, run 'm login' first")
+		t.Skip("no valid OAuth token, run m web")
 	}
 	ioSvc, err := miioservice.New(token, tokenPath)
 	if err != nil {

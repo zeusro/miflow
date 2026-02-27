@@ -10,16 +10,18 @@ import (
 	"strings"
 
 	"github.com/zeusro/miflow/miiot/specs"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 func main() {
+	lang := i18n.DefaultLang()
 	models, err := getModels()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "get models: %v\n", err)
+		fmt.Fprint(os.Stderr, i18n.T(lang, "scrape.get_models_err", map[string]interface{}{"Err": err}))
 		os.Exit(1)
 	}
 	if len(models) == 0 {
-		fmt.Fprintln(os.Stderr, "no models from m list")
+		fmt.Fprintln(os.Stderr, i18n.T(lang, "scrape.no_models", nil))
 		os.Exit(1)
 	}
 	sort.Strings(models)
@@ -29,14 +31,14 @@ func main() {
 		specURL, err := specs.TechSpecURL(model)
 		if err != nil {
 			rows = append(rows, []string{model, productURL(model), "-"})
-			fmt.Fprintf(os.Stderr, "warn: %s: %v\n", model, err)
+			fmt.Fprint(os.Stderr, i18n.T(lang, "scrape.warn", map[string]interface{}{"Model": model, "Err": err}))
 			continue
 		}
 		rows = append(rows, []string{model, productURL(model), specURL})
 	}
 
 	// 输出 Markdown 表格
-	fmt.Println("| model | 产品页 | 技术说明 (Spec URL) |")
+	fmt.Println(i18n.T(lang, "scrape.table_header", nil))
 	fmt.Println("|-------|--------|---------------------|")
 	for _, r := range rows {
 		specCell := r[2]

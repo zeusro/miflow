@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // OAuth2 常量（默认值，可由配置覆盖）
@@ -228,7 +229,7 @@ func ServeCallback(port int) (string, error) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		if strings.Contains(err.Error(), "address already in use") {
-			fmt.Fprintf(os.Stderr, "Port %d is already in use. After authorizing, copy the 'code' from the redirect URL and paste it here:\n", port)
+			fmt.Fprint(os.Stderr, i18n.T(i18n.DefaultLang(), "oauth.port_in_use", map[string]interface{}{"Port": port}))
 			scanner := bufio.NewScanner(os.Stdin)
 			if scanner.Scan() {
 				return strings.TrimSpace(scanner.Text()), nil
@@ -238,7 +239,7 @@ func ServeCallback(port int) (string, error) {
 		return "", err
 	}
 	defer ln.Close()
-	fmt.Fprintf(os.Stderr, "Local callback server listening on :%d...\n", port)
+	fmt.Fprint(os.Stderr, i18n.T(i18n.DefaultLang(), "oauth.listening", map[string]interface{}{"Port": port}))
 
 	ch := make(chan string, 1)
 	mux := http.NewServeMux()

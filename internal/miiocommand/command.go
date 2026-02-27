@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeusro/miflow/internal/device"
 	"github.com/zeusro/miflow/internal/miioservice"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // Run 解析文本并执行相应的 MiIO/MIoT 命令。did 可为设备 ID 或名称。
@@ -15,7 +16,7 @@ import (
 func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
-		return Help(did, prefix), nil
+		return Help(did, prefix, ""), nil
 	}
 	parts := strings.SplitN(text, " ", 2)
 	cmd := parts[0]
@@ -29,7 +30,7 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 		var data interface{}
 		if arg != "" {
 			if err := json.Unmarshal([]byte(arg), &data); err != nil {
-				return nil, fmt.Errorf("invalid JSON: %w", err)
+				return nil, fmt.Errorf("%s", i18n.T("", "miiocmd.invalid_json", map[string]interface{}{"Err": err.Error()}))
 			}
 		}
 		return svc.MiIORequest(cmd, data)
@@ -40,7 +41,7 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 		var params interface{}
 		if arg != "" {
 			if err := json.Unmarshal([]byte(arg), &params); err != nil {
-				return nil, fmt.Errorf("invalid JSON: %w", err)
+				return nil, fmt.Errorf("%s", i18n.T("", "miiocmd.invalid_json", map[string]interface{}{"Err": err.Error()}))
 			}
 		}
 		return svc.MiotRequest(cmd, params)
@@ -100,21 +101,21 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 
 	if cmd == "decode" {
 		if argc < 3 {
-			return nil, fmt.Errorf("decode requires: ssecurity nonce data [gzip]")
+			return nil, fmt.Errorf("%s", i18n.T("", "miiocmd.decode_requires", nil))
 		}
 		gzip := argc > 3 && argv[3] == "gzip"
 		return miioservice.MiotDecode(argv[0], argv[1], argv[2], gzip)
 	}
 
 	if cmd == "?" || cmd == "？" || cmd == "help" || cmd == "-h" || cmd == "--help" {
-		return Help(did, prefix), nil
+		return Help(did, prefix, ""), nil
 	}
 
 	// Resolve did to numeric if it's a name
 	if did != "" && !isDigits(did) {
 		devs, err := svc.DeviceList(did, false, 0)
 		if err != nil || len(devs) == 0 {
-			return nil, fmt.Errorf("device not found: %s", did)
+			return nil, fmt.Errorf("%s", i18n.T("", "miiocmd.device_not_found", map[string]interface{}{"Did": did}))
 		}
 		if d, ok := devs[0]["did"].(string); ok {
 			did = d
@@ -122,7 +123,7 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 	}
 
 	if did == "" || cmd == "" {
-		return Help(did, prefix), nil
+		return Help(did, prefix, ""), nil
 	}
 
 	// Parse comma-separated items: 1,1-2,2=#60,5-4 Hello #1
@@ -249,36 +250,39 @@ func stringOrValue(s string) interface{} {
 	return s
 }
 
-// Help 返回命令帮助字符串。
-func Help(did, prefix string) string {
+// Help 返回命令帮助字符串。lang 为空时使用默认语言。
+func Help(did, prefix, lang string) string {
 	if did == "" {
 		did = "267090026"
 	}
-	return fmt.Sprintf(`Get Props: %s [,...]
-  %s1,1-2,1-3,2-1,2-2,3
-Set Props: %s [,...]
-  %s2=#60,2-2=#false,3=test
-Do Action: %s [...] 
-  %s2 #NA
-  %s5 Hello
-  %s5-4 Hello #1
+	if lang == "" {
+		lang = i18n.DefaultLang()
+	}
+	specHint := i18n.T(lang, "miiocmd.spec_all_hint", nil)
+	return fmt.Sprintf(`Get Props: %[1]s [,...]
+  %[1]s1,1-2,1-3,2-1,2-2,3
+Set Props: %[1]s [,...]
+  %[1]s2=#60,2-2=#false,3=test
+Do Action: %[1]s [...] 
+  %[1]s2 #NA
+  %[1]s5 Hello
+  %[1]s5-4 Hello #1
 
-Call MIoT: %s prop/get|prop/set|action <params>
-  %saction '{"did":"%s","siid":5,"aiid":1,"in":["Hello"]}'
+Call MIoT: %[1]s prop/get|prop/set|action <params>
+  %[1]saction '{"did":"%[2]s","siid":5,"aiid":1,"in":["Hello"]}'
 
-Call MiIO: %s/ <uri> <data>
-  %s/home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
+Call MiIO: %[1]s/ <uri> <data>
+  %[1]s/home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
 
-Devs List: %slist [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
-  %slist Light true 0
+Devs List: %[1]slist [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
+  %[1]slist Light true 0
 
-MIoT Spec: %sspec [model_keyword|type_urn] [format=text|python|json]
-  %sspec speaker
-  %sspec xiaomi.wifispeaker.lx04
-  %sspec_all  获取 m list 中所有型号的 SPEC（按 docs/spec.md 流程）
+MIoT Spec: %[1]sspec [model_keyword|type_urn] [format=text|python|json]
+  %[1]sspec speaker
+  %[1]sspec xiaomi.wifispeaker.lx04
+  %[1]sspec_all  %[3]s
 
-MIoT Decode: %sdecode <ssecurity> <nonce> <data> [gzip]
+MIoT Decode: %[1]sdecode <ssecurity> <nonce> <data> [gzip]
 `,
-		prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix,
-		prefix, prefix, did, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix)
+		prefix, did, specHint)
 }

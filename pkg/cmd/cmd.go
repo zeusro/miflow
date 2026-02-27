@@ -12,80 +12,28 @@ import (
 	"github.com/zeusro/miflow/internal/miiocommand"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
-	"github.com/zeusro/miflow/pkg/cmd/login"
 	"github.com/zeusro/miflow/pkg/cmd/mina"
 	"github.com/zeusro/miflow/pkg/cmd/util"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 const prefix = "m "
 
 // Usage 打印 m 的简短用法。
 func Usage() {
-	fmt.Fprintf(os.Stderr, "m - XiaoMi MIoT + Mina CLI (OAuth 2.0)\n\n")
-	fmt.Fprintf(os.Stderr, "First run: m login\n")
-	fmt.Fprintf(os.Stderr, "Device:    config default_did or export MI_DID=<device_id|name>\n")
-	fmt.Fprintf(os.Stderr, "          (required for mina commands except 'mina')\n\n")
-	fmt.Fprintf(os.Stderr, "Mina:      mina | message <text> | play <url> | pause | stop | loop <url> | play_list <file> | suno | suno_random\n")
-	fmt.Fprintf(os.Stderr, "MiIO/MIoT: list | spec | spec_all | decode | siid-piid | prop/get|set | action | /uri\n\n")
-	fmt.Fprint(os.Stderr, miiocommand.Help("", prefix))
+	lang := i18n.DefaultLang()
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.title", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.first_run", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.device", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.device_required", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.mina", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.miio", nil))
+	fmt.Fprint(os.Stderr, miiocommand.Help("", prefix, lang))
 }
 
 // FullHelp 返回完整帮助字符串。
 func FullHelp() string {
-	return `m - XiaoMi MIoT + Mina CLI (OAuth 2.0)
-
-USAGE
-  m <command> [args...]
-
-AUTH
-  login              首次使用需执行 OAuth 2.0 登录，在浏览器中完成授权后保存 token
-
-DEVICE
-  通过 config 的 default_did 或环境变量 MI_DID 指定设备（device_id 或设备名称）
-  mina 命令（除 mina 外）均需指定设备
-  配置文件：.config.yaml、config.yaml、~/.config/miflow/config.yaml、~/.miflow.yaml
-
-MINA（小爱音箱 / 语音设备）
-  mina              列出 Mina 设备列表（无需指定设备）
-  message <text>    设备 TTS 播报指定文本
-  play <url>        播放指定 URL 的音频（单次）
-  pause             暂停播放
-  stop              停止播放（同 pause）
-  loop <url>        循环播放指定 URL
-  play_list <file>  按文件中的 URL 列表顺序播放（每行一个 URL，# 开头为注释）
-  suno              播放 Suno trending 列表（需网络）
-  suno_random       随机播放 Suno 列表（需网络）
-
-MIoT / MiIO（设备属性与控制）
-  list [name] [getVirtualModel] [getHuamiDevices]
-                    列出设备，可选按名称筛选、是否含虚拟设备、华米设备数量
-  spec [model] [format]
-                    查询 MIoT 规格，format 可选 text|python|json
-  spec_all           获取 m list 中所有型号的 SPEC（同 spec-all）
-  decode <ssecurity> <nonce> <data> [gzip]
-                    解码 MIoT 加密数据
-
-  siid-piid          获取属性，如 m 1,1-2,1-3,2-1
-  siid-piid=value    设置属性，如 m 2=#60,2-2=#false,3=test（# 前缀表示数字/布尔）
-  siid-aiid args     执行动作，如 m 5 Hello 或 m 5-4 Hello #1
-
-  prop/get|prop/set|action <params>
-                    原始 MIoT 调用，params 为 JSON
-  /<uri> <data>     原始 MiIO 调用，如 m /home/device_list '{"getVirtualModel":false}'
-
-EXAMPLES
-  m login
-  m mina
-  m message 你好世界
-  m play https://example.com/audio.mp3
-  m list
-  m list Light true 0
-  m spec speaker
-  m spec xiaomi.wifispeaker.lx04 json
-  m 1,1-2,2-1
-  m 2=#60
-  m 5 你好
-`
+	return i18n.T(i18n.DefaultLang(), "cli.full_help", nil)
 }
 
 // Run 使用给定参数执行 m 命令。
@@ -107,14 +55,9 @@ func Run(args []string) {
 	cfg := config.Get()
 	tokenPath := cfg.TokenPath
 
-	if cmd == "login" {
-		login.Login{TokenPath: tokenPath}.Run()
-		return
-	}
-
 	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
 	if token == nil || !token.IsValid() {
-		fmt.Fprintln(os.Stderr, "Error: no valid token, run 'm login' first")
+		fmt.Fprintln(os.Stderr, i18n.T(i18n.DefaultLang(), "cli.error.no_token", nil))
 		Usage()
 		os.Exit(1)
 	}

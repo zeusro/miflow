@@ -7,6 +7,7 @@ import (
 
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/zeusro/miflow/internal/web/workflow"
+	"github.com/zeusro/miflow/pkg/i18n"
 	"github.com/zeusro/miflow/web"
 )
 
@@ -22,9 +23,10 @@ func WorkflowsList(a *web.App, r *ghttp.Request) {
 
 // WorkflowGet 处理 GET /api/workflows/:id - 获取工作流
 func WorkflowGet(a *web.App, r *ghttp.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	id := r.GetRouter("id").String()
 	if id == "" {
-		Err(r, http.StatusBadRequest, "workflow id required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.workflow_id_required", nil))
 		return
 	}
 	w, err := a.WorkflowStore().Get(id)
@@ -33,7 +35,7 @@ func WorkflowGet(a *web.App, r *ghttp.Request) {
 		return
 	}
 	if w == nil {
-		Err(r, http.StatusNotFound, "workflow not found")
+		Err(r, http.StatusNotFound, i18n.T(lang, "web.api.workflow_not_found", nil))
 		return
 	}
 	JSON(r, http.StatusOK, w)
@@ -41,13 +43,14 @@ func WorkflowGet(a *web.App, r *ghttp.Request) {
 
 // WorkflowCreate 处理 POST /api/workflows - 创建工作流
 func WorkflowCreate(a *web.App, r *ghttp.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	var w workflow.Workflow
 	if err := json.NewDecoder(r.Request.Body).Decode(&w); err != nil {
-		Err(r, http.StatusBadRequest, "invalid JSON")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.invalid_json", nil))
 		return
 	}
 	if strings.TrimSpace(w.Name) == "" {
-		Err(r, http.StatusBadRequest, "name required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.name_required", nil))
 		return
 	}
 	if err := a.WorkflowStore().Upsert(&w); err != nil {
@@ -59,14 +62,15 @@ func WorkflowCreate(a *web.App, r *ghttp.Request) {
 
 // WorkflowUpdate 处理 PUT /api/workflows/:id - 更新工作流
 func WorkflowUpdate(a *web.App, r *ghttp.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	id := r.GetRouter("id").String()
 	if id == "" {
-		Err(r, http.StatusBadRequest, "workflow id required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.workflow_id_required", nil))
 		return
 	}
 	var w workflow.Workflow
 	if err := json.NewDecoder(r.Request.Body).Decode(&w); err != nil {
-		Err(r, http.StatusBadRequest, "invalid JSON")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.invalid_json", nil))
 		return
 	}
 	w.ID = id
@@ -79,9 +83,10 @@ func WorkflowUpdate(a *web.App, r *ghttp.Request) {
 
 // WorkflowDelete 处理 DELETE /api/workflows/:id - 删除工作流
 func WorkflowDelete(a *web.App, r *ghttp.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	id := r.GetRouter("id").String()
 	if id == "" {
-		Err(r, http.StatusBadRequest, "workflow id required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.workflow_id_required", nil))
 		return
 	}
 	if err := a.WorkflowStore().Delete(id); err != nil {
@@ -96,14 +101,15 @@ func WorkflowRun(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
 	}
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	id := r.GetRouter("id").String()
 	if id == "" {
-		Err(r, http.StatusBadRequest, "workflow id required")
+		Err(r, http.StatusBadRequest, i18n.T(lang, "web.api.workflow_id_required", nil))
 		return
 	}
 	w, err := a.WorkflowStore().Get(id)
 	if err != nil || w == nil {
-		Err(r, http.StatusNotFound, "workflow not found")
+		Err(r, http.StatusNotFound, i18n.T(lang, "web.api.workflow_not_found", nil))
 		return
 	}
 	go a.RunWorkflow(w)

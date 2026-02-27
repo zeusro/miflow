@@ -10,6 +10,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/pkg/i18n"
 	"github.com/zeusro/miflow/web"
 	"github.com/zeusro/miflow/web/api"
 )
@@ -30,9 +31,10 @@ func main() {
 	staticRoot, _ := fs.Sub(web.StaticFS, "static")
 	s.Group("/", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) {
-			data, err := fs.ReadFile(staticRoot, "index.html")
+			lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
+			data, err := web.RenderIndexBytes(lang)
 			if err != nil {
-				data, _ = web.RenderDefaultBytes()
+				data, _ = web.RenderDefaultBytes(lang)
 			}
 			if len(data) > 0 {
 				r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")

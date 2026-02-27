@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/zeusro/miflow/internal/miioservice"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // NewAPI 创建设备 API，需要已初始化的 miioservice.Service。
@@ -31,14 +32,14 @@ func (a *API) List(name string, getVirtualModel bool, getHuamiDevices int) ([]*D
 // Get 按 did 或 name 获取单个设备，未找到返回 nil 和错误。
 func (a *API) Get(didOrName string) (*Device, error) {
 	if didOrName == "" {
-		return nil, fmt.Errorf("device: did or name required")
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "device.did_required", nil))
 	}
 	list, err := a.List(didOrName, false, 0)
 	if err != nil {
 		return nil, err
 	}
 	if len(list) == 0 {
-		return nil, fmt.Errorf("device not found: %s", didOrName)
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "device.not_found", map[string]interface{}{"Did": didOrName}))
 	}
 	return list[0], nil
 }
@@ -54,7 +55,7 @@ func (a *API) Spec(typ, format string) (interface{}, error) {
 // SpecForDevice 获取指定设备的 SPEC，使用其 model。
 func (a *API) SpecForDevice(d *Device, format string) (interface{}, error) {
 	if d == nil || d.Model == "" {
-		return nil, fmt.Errorf("device: model required")
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "device.model_required", nil))
 	}
 	return a.Spec(d.Model, format)
 }
@@ -77,7 +78,7 @@ func (a *API) Action(did string, siid, aiid int, in []interface{}) (int, error) 
 // ResolveDID 将 name 解析为 did，若已是纯数字 did 则原样返回。
 func (a *API) ResolveDID(didOrName string) (string, error) {
 	if didOrName == "" {
-		return "", fmt.Errorf("device: did or name required")
+		return "", fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "device.did_required", nil))
 	}
 	if isDigits(didOrName) {
 		return didOrName, nil

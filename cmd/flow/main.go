@@ -17,6 +17,7 @@ import (
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/miiocommand"
 	"github.com/zeusro/miflow/internal/minaservice"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // FlowStepType 定义流程中的单步类型。
@@ -217,15 +218,16 @@ type app struct {
 }
 
 func main() {
+	lang := i18n.DefaultLang()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	cfg := config.Get()
-	addr := flag.String("addr", cfg.Flow.Addr, "HTTP 监听地址（用于可视化 Flow 配置）")
-	dataDir := flag.String("data_dir", cfg.Flow.DataDir, "Flow 配置持久化目录")
+	addr := flag.String("addr", cfg.Flow.Addr, i18n.T(lang, "flow.addr_desc", nil))
+	dataDir := flag.String("data_dir", cfg.Flow.DataDir, i18n.T(lang, "flow.datadir_desc", nil))
 	flag.Parse()
 
 	if err := os.MkdirAll(*dataDir, 0o755); err != nil {
-		log.Fatalf("创建数据目录失败: %v", err)
+		log.Fatalf("%s", i18n.T(lang, "flow.mkdir_failed", map[string]interface{}{"Err": err}))
 	}
 	store := NewFlowStore(filepath.Join(*dataDir, "flows.json"))
 
@@ -233,7 +235,7 @@ func main() {
 	tokenPath := cfg.TokenPath
 	token := (&miaccount.TokenStore{Path: tokenPath}).LoadOAuth()
 	if token == nil || !token.IsValid() {
-		log.Println("警告：未登录，Flow 仍可编辑，但执行会失败。请先运行 m login")
+		log.Println(i18n.T(lang, "flow.warn_not_logged_in", nil))
 	}
 
 	var (
@@ -244,7 +246,7 @@ func main() {
 		var err error
 		miioSvc, err = miioservice.New(token, tokenPath)
 		if err != nil {
-			log.Printf("MiIO 初始化失败: %v", err)
+			log.Printf("%s", i18n.T(lang, "flow.miio_init_failed", map[string]interface{}{"Err": err}))
 		} else {
 			minaSvc = minaservice.NewWithMinaAPI(miioSvc, token, tokenPath)
 		}
@@ -264,7 +266,7 @@ func main() {
 	mux.HandleFunc("/api/flows", a.handleFlows)
 	mux.HandleFunc("/api/flows/", a.handleFlowByID) // /api/flows/{id} 和 /api/flows/{id}/run
 
-	log.Printf("Flow server listening on %s\n", *addr)
+	log.Printf("%s", i18n.T(lang, "flow.server_listening", map[string]interface{}{"Addr": *addr}))
 	log.Fatal(http.ListenAndServe(*addr, logRequest(mux)))
 }
 
@@ -285,12 +287,14 @@ func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, indexHTML)
+	fmt.Fprint(w, buildFlowIndexHTML(lang))
 }
 
 // handleFlows 处理 GET/POST /api/flows。
 func (a *app) handleFlows(w http.ResponseWriter, r *http.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	switch r.Method {
 	case http.MethodGet:
 		flows, err := a.store.list()
@@ -302,11 +306,11 @@ func (a *app) handleFlows(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var f Flow
 		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
-			http.Error(w, "invalid json: "+err.Error(), http.StatusBadRequest)
+			http.Error(w, i18n.T(lang, "flow.invalid_json", map[string]interface{}{"Err": err.Error()}), http.StatusBadRequest)
 			return
 		}
 		if strings.TrimSpace(f.Name) == "" {
-			http.Error(w, "name is required", http.StatusBadRequest)
+			http.Error(w, i18n.T(lang, "flow.name_required", nil), http.StatusBadRequest)
 			return
 		}
 		saved, err := a.store.upsert(f)
@@ -317,12 +321,13 @@ func (a *app) handleFlows(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, saved)
 	default:
 		w.Header().Set("Allow", "GET, POST")
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, i18n.T(lang, "flow.method_not_allowed", nil), http.StatusMethodNotAllowed)
 	}
 }
 
 // handleFlowByID 处理 GET/DELETE /api/flows/{id} 或 POST /api/flows/{id}/run。
 func (a *app) handleFlowByID(w http.ResponseWriter, r *http.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	trimmed := strings.TrimPrefix(r.URL.Path, "/api/flows/")
 	if trimmed == "" {
 		http.NotFound(w, r)
@@ -357,12 +362,12 @@ func (a *app) handleFlowByID(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNoContent)
 		default:
 			w.Header().Set("Allow", "GET, DELETE")
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, i18n.T(lang, "flow.method_not_allowed", nil), http.StatusMethodNotAllowed)
 		}
 	case "run":
 		if r.Method != http.MethodPost {
 			w.Header().Set("Allow", "POST")
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, i18n.T(lang, "flow.method_not_allowed", nil), http.StatusMethodNotAllowed)
 			return
 		}
 		f, ok, err := a.store.get(id)
@@ -387,7 +392,7 @@ func (a *app) runFlow(f Flow) {
 	log.Printf("Running flow %s (%s) with %d steps\n", f.ID, f.Name, len(f.Steps))
 	for i, step := range f.Steps {
 		if err := a.runStep(step); err != nil {
-			log.Printf("flow %s step %d (%s) error: %v", f.ID, i, step.Label, err)
+			log.Printf("%s", i18n.T(i18n.DefaultLang(), "flow.step_error", map[string]interface{}{"ID": f.ID, "Step": i, "Type": step.Type, "Err": err}))
 			// 这里简单记录错误并继续后续步骤；也可以在未来支持“出错即停止”的选项
 		}
 	}
@@ -412,11 +417,11 @@ func (a *app) runStep(step FlowStep) error {
 		return nil
 	case StepTypeTTS:
 		if a.mina == nil {
-			return fmt.Errorf("mina service not initialized (run 'm login' first)")
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "flow.mina_not_init", nil))
 		}
 		did := a.resolveDID(step)
 		if did == "" {
-			return fmt.Errorf("no device ID configured for TTS step")
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "flow.no_device_tts", nil))
 		}
 		deviceID, err := a.mina.GetMinaDeviceID(did)
 		if err != nil {
@@ -426,11 +431,11 @@ func (a *app) runStep(step FlowStep) error {
 		return err
 	case StepTypePlayURL:
 		if a.mina == nil {
-			return fmt.Errorf("mina service not initialized (run 'm login' first)")
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "flow.mina_not_init", nil))
 		}
 		did := a.resolveDID(step)
 		if did == "" {
-			return fmt.Errorf("no device ID configured for play_url step")
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "flow.no_device_play", nil))
 		}
 		deviceID, err := a.mina.GetMinaDeviceID(did)
 		if err != nil {
@@ -440,7 +445,7 @@ func (a *app) runStep(step FlowStep) error {
 		return err
 	case StepTypeMiIO:
 		if a.miio == nil {
-			return fmt.Errorf("miio service not initialized (run 'm login' first)")
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "flow.miio_not_init", nil))
 		}
 		text := strings.TrimSpace(step.MiIOText)
 		if text == "" {
@@ -454,7 +459,7 @@ func (a *app) runStep(step FlowStep) error {
 		_, err := miiocommand.Run(a.miio, did, text, defaultPrefix)
 		return err
 	default:
-		return fmt.Errorf("unsupported step type: %s", step.Type)
+		return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "flow.unsupported_step", map[string]interface{}{"Type": step.Type}))
 	}
 }
 
@@ -464,6 +469,56 @@ func writeJSON(w http.ResponseWriter, v interface{}) {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(v)
+}
+
+// buildFlowIndexHTML 根据语言返回带 i18n 的首页 HTML。
+func buildFlowIndexHTML(lang string) string {
+	t := func(id string, data map[string]interface{}) string {
+		return i18n.T(lang, id, data)
+	}
+	html := indexHTML
+	repl := map[string]string{
+		"MiFlow 可视化控制流":     t("flow.ui.title", nil),
+		"基于 <code>m</code> / MiNA 的可视化编排（后端 Go，前端极简版，可按需自定义）": t("flow.ui.subtitle", nil),
+		"MiFlow · 设备工作控制流": t("flow.ui.title", nil),
+		"新建 Flow":              t("flow.ui.new_flow", nil),
+		"刷新":                   t("flow.ui.refresh", nil),
+		"还没有配置任何 Flow。点击右上角「新建 Flow」开始。": t("flow.ui.no_flows_hint", nil),
+		"名称":                   t("flow.ui.name", nil),
+		"例如：早安流程 / 回家流程": t("flow.ui.name_placeholder", nil),
+		"描述":                   t("flow.ui.description", nil),
+		"这个 Flow 的用途说明":     t("flow.ui.desc_placeholder", nil),
+		"步骤列表":                t("flow.ui.steps", nil),
+		"添加步骤":                t("flow.ui.add_step", nil),
+		"类型":                   t("flow.ui.type", nil),
+		"设备 (可选)":             t("flow.ui.device_optional", nil),
+		"参数":                   t("flow.ui.params", nil),
+		"操作":                   t("flow.ui.actions", nil),
+		"类型说明：":               t("flow.ui.type_help", nil),
+		"运行 Flow":              t("flow.ui.run_flow", nil),
+		"保存":                   t("flow.ui.save", nil),
+		"暂无 Flow":              t("flow.ui.no_flow", nil),
+		"(未命名 Flow)":          t("flow.ui.unnamed_flow", nil),
+		"确认删除该 Flow？":        t("flow.ui.confirm_delete_flow", nil),
+		"已删除 Flow":            t("flow.ui.deleted", nil),
+		"删除失败":               t("flow.ui.delete_failed", nil),
+		"加载失败":               t("flow.ui.load_failed", nil),
+		"加载 Flow 失败":          t("flow.ui.load_failed_msg", nil),
+		"已保存":                 t("flow.ui.saved", nil),
+		"保存失败":               t("flow.ui.save_failed", nil),
+		"请先保存 Flow 再运行":     t("flow.ui.save_first_run", nil),
+		"已触发运行（在服务器日志中查看执行情况）": t("flow.ui.run_triggered_msg", nil),
+		"运行失败":               t("flow.ui.run_failed", nil),
+		"留空则使用 MI_DID":       t("flow.ui.device_optional_hint", nil),
+		"等待毫秒数，例如 1000":     t("flow.ui.delay_hint", nil),
+		"播报文本":               t("flow.ui.tts_hint", nil),
+		"音频 URL":               t("flow.ui.audio_hint", nil),
+		"等价 m 命令的参数，例如: 1,1-2=#60": t("flow.ui.miio_hint", nil),
+	}
+	for old, new := range repl {
+		html = strings.ReplaceAll(html, old, new)
+	}
+	return html
 }
 
 // indexHTML 是极简的单页"可视化配置" UI。

@@ -7,6 +7,7 @@ import (
 
 	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // Login 运行 OAuth 2.0 登录流程。
@@ -16,15 +17,16 @@ type Login struct {
 
 // Run 执行登录命令。
 func (l Login) Run() {
+	lang := i18n.DefaultLang()
 	oc := miaccount.NewOAuthClient()
 	authURL := oc.GenAuthURL("", "", true)
-	fmt.Fprintf(os.Stderr, "Open this URL in browser to login:\n%s\n\n", authURL)
+	fmt.Fprint(os.Stderr, i18n.T(lang, "login.open_url", map[string]interface{}{"URL": authURL}))
 	callbackPort := config.Get().MiIO.CallbackPort
 	if callbackPort <= 0 {
 		callbackPort = 8123
 	}
 	if err := miaccount.OpenAuthURL(authURL); err != nil {
-		fmt.Fprintln(os.Stderr, "(Could not open browser, open the URL manually)")
+		fmt.Fprintln(os.Stderr, i18n.T(lang, "login.open_manually", nil))
 	}
 	code, err := miaccount.ServeCallback(callbackPort)
 	if err != nil {
@@ -41,5 +43,5 @@ func (l Login) Run() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Fprintln(os.Stderr, "Login successful. Token saved to", l.TokenPath)
+	fmt.Fprintln(os.Stderr, i18n.T(lang, "login.success", nil), l.TokenPath)
 }

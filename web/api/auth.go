@@ -2,16 +2,19 @@ package api
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/zeusro/miflow/internal/miaccount"
+	"github.com/zeusro/miflow/pkg/i18n"
 	"github.com/zeusro/miflow/web"
 )
 
 // RequireAuth 若无有效 token 则返回 401。
 func RequireAuth(a *web.App, r *ghttp.Request) bool {
 	if a.DeviceAPI() == nil {
-		Err(r, http.StatusUnauthorized, "请先登录 (run login or visit /login)")
+		lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
+		Err(r, http.StatusUnauthorized, i18n.T(lang, "web.auth.please_login", nil))
 		return false
 	}
 	return true
@@ -22,11 +25,21 @@ func Login(a *web.App, r *ghttp.Request) {
 	oc := miaccount.NewOAuthClient()
 	a.OAuthStore().Put(oc.State, oc)
 
-	authURL := oc.GenAuthURL("", "", true)
-	data, err := web.RenderLoginBytes(authURL)
+	// 按 docs/auth.md 流程，使用固定 Auth URL
+	params := url.Values{
+		"redirect_uri":  {oc.RedirectURI},
+		"client_id":     {oc.ClientID},
+		"response_type": {"code"},
+		"device_id":     {oc.DeviceID},
+		"state":         {oc.State},
+		"skip_confirm":  {"true"},
+	}
+	authURL := miaccount.OAuth2AuthURL + "?" + params.Encode()
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
+	data, err := web.RenderLoginBytes(authURL, lang)
 	if err != nil {
 		r.Response.WriteStatus(http.StatusInternalServerError)
-		r.Response.Write([]byte("模板渲染失败"))
+		r.Response.Write([]byte(i18n.T(lang, "web.auth.template_failed", nil)))
 		return
 	}
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -35,12 +48,13 @@ func Login(a *web.App, r *ghttp.Request) {
 
 // Callback 处理 GET /callback - OAuth 回调，用 code 换取 token 并保存。
 func Callback(a *web.App, r *ghttp.Request) {
+	lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 	code := r.Get("code").String()
 	state := r.Get("state").String()
 	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	writeError := func(status int, title, message string) {
-		data, err := web.RenderErrorBytes(title, message)
+		data, err := web.RenderErrorBytes(title, message, lang)
 		if err != nil {
 			r.Response.WriteStatus(status)
 			r.Response.Write([]byte(title + ": " + message))
@@ -51,19 +65,19 @@ func Callback(a *web.App, r *ghttp.Request) {
 	}
 
 	if code == "" {
-		writeError(http.StatusBadRequest, "授权失败", "缺少授权码 (code)，请重新登录。")
+		writeError(http.StatusBadRequest, i18n.T(lang, "web.auth.auth_failed", nil), i18n.T(lang, "web.auth.missing_code", nil))
 		return
 	}
 
 	oc := a.OAuthStore().Pop(state)
 	if oc == nil {
-		writeError(http.StatusBadRequest, "授权失败", "未找到对应的登录会话 (state 不匹配)，请从 /login 重新发起授权。")
+		writeError(http.StatusBadRequest, i18n.T(lang, "web.auth.auth_failed", nil), i18n.T(lang, "web.auth.state_mismatch", nil))
 		return
 	}
 
 	token, err := oc.GetToken(code)
 	if err != nil {
-		writeError(http.StatusInternalServerError, "Token 获取失败", err.Error())
+		writeError(http.StatusInternalServerError, i18n.T(lang, "web.auth.token_fetch_failed", nil), err.Error())
 		return
 	}
 
@@ -73,14 +87,14 @@ func Callback(a *web.App, r *ghttp.Request) {
 	}
 	store := &miaccount.TokenStore{Path: tokenPath}
 	if err := store.SaveOAuth(token); err != nil {
-		writeError(http.StatusInternalServerError, "Token 保存失败", err.Error())
+		writeError(http.StatusInternalServerError, i18n.T(lang, "web.auth.token_save_failed", nil), err.Error())
 		return
 	}
 
-	data, err := web.RenderCallbackSuccessBytes()
+	data, err := web.RenderCallbackSuccessBytes(lang)
 	if err != nil {
 		r.Response.WriteStatus(http.StatusOK)
-		r.Response.Write([]byte("登录成功，token 已保存。"))
+		r.Response.Write([]byte(i18n.T(lang, "web.auth.login_success", nil)))
 		return
 	}
 	r.Response.WriteStatus(http.StatusOK)

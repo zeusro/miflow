@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeusro/miflow/internal/minaservice"
 	"github.com/zeusro/miflow/pkg/cmd/util"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // Mina 运行 mina 子命令。
@@ -20,8 +21,9 @@ type Mina struct {
 
 // Run 执行 mina 子命令。
 func (m Mina) Run() {
+	lang := i18n.DefaultLang()
 	if m.Cmd != "mina" && m.DID == "" {
-		fmt.Fprintln(os.Stderr, "Error: MI_DID must be set for mina commands (message, play, pause, etc.)")
+		fmt.Fprintln(os.Stderr, i18n.T(lang, "mina.error.no_did", nil))
 		os.Exit(1)
 	}
 
@@ -54,7 +56,7 @@ func (m Mina) Run() {
 		return
 	case "message":
 		if len(m.Args) < 1 {
-			fmt.Fprintln(os.Stderr, "Usage: m message <text>")
+			fmt.Fprintln(os.Stderr, i18n.T(lang, "mina.usage.message", nil))
 			os.Exit(1)
 		}
 		_, err := m.MinaSvc.TextToSpeech(deviceID, strings.Join(m.Args, " "))
@@ -65,7 +67,7 @@ func (m Mina) Run() {
 		return
 	case "play":
 		if len(m.Args) < 1 {
-			fmt.Fprintln(os.Stderr, "Usage: m play <url>")
+			fmt.Fprintln(os.Stderr, i18n.T(lang, "mina.usage.play", nil))
 			os.Exit(1)
 		}
 		_, err := m.MinaSvc.PlayByURL(deviceID, m.Args[0], 2)
@@ -77,7 +79,7 @@ func (m Mina) Run() {
 		return
 	case "loop":
 		if len(m.Args) < 1 {
-			fmt.Fprintln(os.Stderr, "Usage: m loop <url>")
+			fmt.Fprintln(os.Stderr, i18n.T(lang, "mina.usage.loop", nil))
 			os.Exit(1)
 		}
 		_, err := m.MinaSvc.PlayByURL(deviceID, m.Args[0], 2)
@@ -89,7 +91,7 @@ func (m Mina) Run() {
 		return
 	case "play_list":
 		if len(m.Args) < 1 {
-			fmt.Fprintln(os.Stderr, "Usage: m play_list <file>")
+			fmt.Fprintln(os.Stderr, i18n.T(lang, "mina.usage.play_list", nil))
 			os.Exit(1)
 		}
 		runPlayList(m.MinaSvc, deviceID, m.Args[0])
@@ -114,7 +116,7 @@ func runPlayList(mina *minaservice.Service, deviceID, filename string) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		fmt.Println("Will play", line)
+		fmt.Println(i18n.T(i18n.DefaultLang(), "mina.will_play", nil), line)
 		_, err := mina.PlayByURL(deviceID, line, 2)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -125,6 +127,7 @@ func runPlayList(mina *minaservice.Service, deviceID, filename string) {
 
 // runSuno 播放 Suno trending 列表（需网络，random 为随机模式）。
 func runSuno(mina *minaservice.Service, deviceID string, random bool) {
-	fmt.Fprintln(os.Stderr, "suno/suno_random: play suno.ai trending (optional, requires network)")
-	fmt.Println("Will play suno trending list")
+	lang := i18n.DefaultLang()
+	fmt.Fprintln(os.Stderr, i18n.T(lang, "mina.suno_hint", nil))
+	fmt.Println(i18n.T(lang, "mina.suno_will_play", nil))
 }

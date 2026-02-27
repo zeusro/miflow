@@ -19,6 +19,7 @@ import (
 	"github.com/zeusro/miflow/internal/config"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/mihomeapi"
+	"github.com/zeusro/miflow/pkg/i18n"
 )
 
 // Service 通过 ha.api.io.mi.com 实现 MiIO/MIoT API（OAuth 2.0）。
@@ -34,7 +35,7 @@ func New(token *miaccount.OAuthToken, tokenPath string) (*Service, error) {
 		token = store.LoadOAuth()
 	}
 	if token == nil || !token.IsValid() {
-		return nil, fmt.Errorf("no valid OAuth token, run 'm login' first")
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.no_token", nil))
 	}
 	ha, err := mihomeapi.New(token, tokenPath)
 	if err != nil {
@@ -81,23 +82,23 @@ func SignData(uri, dataStr, ssecurity string) (map[string]string, error) {
 
 // MiIORequest: OAuth 模式不支持原始 MiIO（ha.api.io.mi.com 使用不同 API）。
 func (s *Service) MiIORequest(uri string, data interface{}) (map[string]interface{}, error) {
-	return nil, fmt.Errorf("raw MiIO (%s) not supported in OAuth mode, use MIoT commands", uri)
+	return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.raw_not_supported", map[string]interface{}{"URI": uri}))
 }
 
 // HomeRequest: OAuth 模式不支持旧版 home/rpc。
 func (s *Service) HomeRequest(did, method string, params interface{}) (map[string]interface{}, error) {
-	return nil, fmt.Errorf("legacy home/rpc not supported in OAuth mode")
+	return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.legacy_home_not_supported", nil))
 }
 
 // HomeGetProps 返回属性值。OAuth 模式使用 MIoT get_prop。
 func (s *Service) HomeGetProps(did string, props []string) ([]interface{}, error) {
 	// 将旧版 prop 名映射到 siid-piid 需要设备规格；暂返回 nil
-	return nil, fmt.Errorf("legacy get_prop not supported, use MIoT format (siid-piid)")
+	return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.legacy_get_prop", nil))
 }
 
 // HomeSetProp: 旧版不支持。
 func (s *Service) HomeSetProp(did, prop string, value interface{}) (interface{}, error) {
-	return nil, fmt.Errorf("legacy set_prop not supported, use MIoT format")
+	return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.legacy_set_prop", nil))
 }
 
 // MiotRequest 通过 HA API 调用 miotspec prop/get、prop/set 或 action。
@@ -106,7 +107,7 @@ func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]inte
 	case "prop/get":
 		pm, ok := toParamsArray(params)
 		if !ok {
-			return nil, fmt.Errorf("prop/get expects params array")
+			return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.prop_get_expects", nil))
 		}
 		res, err := s.ha.GetProps(pm)
 		if err != nil {
@@ -116,7 +117,7 @@ func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]inte
 	case "prop/set":
 		pm, ok := toParamsArray(params)
 		if !ok {
-			return nil, fmt.Errorf("prop/set expects params array")
+			return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.prop_set_expects", nil))
 		}
 		_, err := s.ha.SetProps(pm)
 		if err != nil {
@@ -126,7 +127,7 @@ func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]inte
 	case "action":
 		p, ok := params.(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf("action expects params object with did, siid, aiid, in")
+			return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.action_expects", nil))
 		}
 		did, _ := p["did"].(string)
 		siid, _ := toInt(p["siid"])
@@ -138,7 +139,7 @@ func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]inte
 		}
 		return []map[string]interface{}{{"code": float64(0)}}, nil
 	default:
-		return nil, fmt.Errorf("unknown miot cmd: %s", cmd)
+		return nil, fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "miio.unknown_cmd", map[string]interface{}{"Cmd": cmd}))
 	}
 }
 

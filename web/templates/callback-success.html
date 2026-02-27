@@ -2,31 +2,33 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <title>登录成功 - miflow</title>
+  <title>{{.Title}}</title>
   <link href="/dist/output.css" rel="stylesheet">
 </head>
-<body class="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+<body class="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6" data-countdown-suffix="{{.CountdownSuffix}}" data-closing="{{.Closing}}">
   <div class="rounded-xl bg-white shadow-sm border border-slate-200 p-8 max-w-md text-center">
     <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
       <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
       </svg>
     </div>
-    <h2 class="mt-4 text-xl font-semibold text-slate-800">登录成功</h2>
-    <p class="mt-2 text-slate-600">米家 OAuth 授权已完成，token 已保存。</p>
-    <p id="countdown" class="mt-4 text-sm text-slate-500">5 秒后自动关闭此页面...</p>
-    <a href="/" class="mt-4 inline-block text-emerald-600 hover:underline">返回首页</a>
+    <h2 class="mt-4 text-xl font-semibold text-slate-800">{{.Success}}</h2>
+    <p class="mt-2 text-slate-600">{{.Done}}</p>
+    <p id="countdown" class="mt-4 text-sm text-slate-500">{{.Countdown}}</p>
+    <a href="/" class="mt-4 inline-block text-emerald-600 hover:underline">{{.BackHome}}</a>
   </div>
   <script>
     (function(){
       var n=5;
       var el=document.getElementById('countdown');
+      var suffix=document.body.getAttribute('data-countdown-suffix')||" seconds until this page closes...";
+      var closing=document.body.getAttribute('data-closing')||"Closing...";
       var t=setInterval(function(){
         n--;
-        if(n>0) el.textContent=n+' 秒后自动关闭此页面...';
+        if(n>0) el.textContent=n+suffix;
         else {
           clearInterval(t);
-          el.textContent='正在关闭...';
+          el.textContent=closing;
           try{window.close()}catch(e){}
         }
       }, 1000);
