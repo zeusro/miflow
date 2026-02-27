@@ -1,5 +1,24 @@
 # 改动
 
+## Cobra 命令行架构重构
+
+2026-02-27
+
+- 使用 Cobra 重构整个项目的命令行架构
+- 新增依赖：`github.com/spf13/cobra`
+- 新增统一入口 `miflow`（`cmd/miflow`），支持子命令：
+  - `miflow m`：小米云 CLI（MiIO/MIoT/Mina）
+  - `miflow flow`：Flow 可视化控制流服务
+  - `miflow web`：Web 服务（OAuth 登录 + 设备管理）
+  - `miflow miiot`：MiIoT 规格校验
+  - `miflow mp3`：本地音乐 HTTP 映射
+  - `miflow scrape-specs`：爬取设备规格 URL 表格
+- 新增 `pkg/cli` 包：root、m、flow、web、miiot、mp3、scrape 子命令
+- 新增 `internal/flowserver` 包：Flow HTTP 服务逻辑与内嵌 HTML，供 `cmd/flow` 与 `pkg/cli/flow` 共用
+- 向后兼容：`cmd/m` 仍可构建为 `m`，内部调用 `cli.Execute`；`cmd/flow` 改为使用 `flowserver.Run`
+- Makefile 新增 `miflow` 构建目标
+- Cobra 能力：子命令结构、自动 `--help`、`miflow completion bash/zsh` 补全、统一 flag 解析
+
 ## LikeC4 项目架构图
 
 2026-02-27
