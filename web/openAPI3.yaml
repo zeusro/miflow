@@ -39,6 +39,37 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/rooms/{roomId}/devices:
+    get:
+      tags: [devices]
+      summary: 按房间获取设备列表
+      description: 获取指定房间的设备列表（含 status），需 OAuth 登录。可选 homeId 区分多家庭。
+      operationId: roomsDevicesList
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: homeId
+          in: query
+          description: 家庭 ID（多家庭时用于区分）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 设备列表（含 status）
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoomDevice'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/devices:
     get:
       tags: [devices]
@@ -125,10 +156,88 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/devices/{id}/control:
+  /api/devices/{id}/status:
+    get:
+      tags: [devices]
+      summary: 设备状态
+      description: 获取设备当前状态（开关、亮度、音量等），需 OAuth 登录。根据设备型号返回 supported 能力列表。
+      operationId: deviceStatus
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: 设备状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       tags: [devices]
-      summary: 设备控制
+      summary: 设置设备状态
+      description: 设置设备状态（开关、亮度、音量、静音等），需 OAuth 登录。
+      operationId: deviceSetStatus
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceStatusInput'
+      responses:
+        '200':
+          description: 设置成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/devices/{id}/control:
+    patch:
+      tags: [devices]
+      summary: 设备控制（PATCH）
+      description: 通过 action 控制设备（toggle/set_on/set_brightness/set_volume），需 OAuth 登录。
+      operationId: deviceControlPatch
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceControlPatchRequest'
+      responses:
+        '200':
+          description: 控制成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusOk'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [devices]
+      summary: 设备控制（MIoT 命令）
       description: 通过 MIoT 命令文本控制设备（等价于 m CLI），需 OAuth 登录。
       operationId: deviceControl
       parameters:
@@ -377,6 +486,96 @@ components:
         command:
           type: string
           description: MIoT 命令文本（如 "set_properties 2,1,1" 或自然语言指令）
+
+    DeviceStatus:
+      type: object
+      description: 设备当前状态（根据型号返回不同字段）
+      properties:
+        on:
+          type: boolean
+          description: 开关状态（switch/light/plug）
+        brightness:
+          type: integer
+          description: 亮度 0-100（light）
+        volume:
+          type: integer
+          description: 音量 0-100（speaker）
+        mute:
+          type: boolean
+          description: 静音状态（speaker）
+        occupancy:
+          description:  occupancy 传感器状态
+        supported:
+          type: array
+          items:
+            type: string
+          description: 支持的能力列表（on/brightness/volume/mute/occupancy）
+
+    RoomDevice:
+      type: object
+      description: 房间内设备（含 status）
+      properties:
+        id:
+          type: string
+        did:
+          type: string
+        name:
+          type: string
+        model:
+          type: string
+        type:
+          type: string
+          enum: [light, switch, plug, speaker, device]
+        room_id:
+          type: string
+        room_name:
+          type: string
+        home_id:
+          type: string
+        status:
+          type: object
+          properties:
+            online:
+              type: boolean
+            value:
+              description: 主状态值
+            on:
+              type: boolean
+            brightness:
+              type: integer
+            volume:
+              type: integer
+            supported:
+              type: array
+              items:
+                type: string
+
+    DeviceControlPatchRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [toggle, set_on, set_brightness, set_volume]
+        value:
+          description: action 对应的值（set_on 为 bool，set_brightness/set_volume 为 0-100）
+
+    DeviceStatusInput:
+      type: object
+      description: 设置设备状态的请求体（可选字段）
+      properties:
+        on:
+          type: boolean
+        brightness:
+          type: integer
+          minimum: 0
+          maximum: 100
+        volume:
+          type: integer
+          minimum: 0
+          maximum: 100
+        mute:
+          type: boolean
 
     ModelSpec:
       type: object

@@ -1,5 +1,41 @@
 # 改动
 
+## 房间页支持多家庭层级展示
+
+2026-02-27
+
+- 更新 rooms.html：按「家庭 → 房间 → 设备」层级结构展示
+- 新增家庭 Tab（全部、家庭1、家庭2…），房间 Tab 根据所选家庭过滤
+- 主内容区：每个家庭为独立 section，下列房间分区，每房间下为设备卡片网格
+- 多家庭时房间 Tab 显示「房间名 (家庭名)」以区分
+- 后端 GET /api/rooms 已支持多家庭，无需新增接口
+
+## 房间页智能家居控制面板全面升级
+
+2026-02-27
+
+- 重设计 rooms.html 为现代化智能家居控制面板，参考 Tailwind Showcase、TailAdmin、Flowbite 等
+- 设计：深色/浅色模式切换、柔和渐变、玻璃态、圆润卡片、微交互 hover、响应式网格（桌面 4 列、平板 2 列、手机 1 列）
+- 设备卡片：5:4 矩形、头部（图标 48-64px、名称、状态徽章 Online/Offline）、主体（亮度/音量/状态数值）、底部（Toggle、亮度滑块）
+- 房间 Tab 切换、多选批量开关（全部开启/全部关闭）
+- 骨架屏加载、空状态插图
+- 新增 GET /api/rooms/:roomId/devices?homeId= 按房间返回设备（含 status）
+- 新增 PATCH /api/devices/:id/control（action: toggle/set_on/set_brightness/set_volume）
+- Tailwind 增加 @custom-variant dark 支持 class 切换暗色模式
+- 更新 openAPI3.yaml：RoomDevice、DeviceControlPatchRequest
+
+## 房间页设备卡片与状态控制
+
+2026-02-27
+
+- 更新 `rooms.html`：设备以矩形卡片展示，支持状态显示与控制
+- 设备卡片：矩形布局、DM Sans 字体、渐变背景、悬停阴影、状态徽章（开/关）
+- 控制逻辑：支持开关的设备显示 Toggle 按钮，点击切换状态并实时更新
+- 新增 `GET /api/devices/{id}/status`：获取设备状态（on/brightness/volume/mute/occupancy、supported 能力列表）
+- 新增 `POST /api/devices/{id}/status`：设置设备状态（on/brightness/volume/mute）
+- 使用 `miiot/ctrl` Controller 根据设备型号解析 MIoT 规格并读写属性
+- 更新 openAPI3.yaml：DeviceStatus、DeviceStatusInput schema
+
 ## 登录成功跳转房间与设备页
 
 2026-02-27

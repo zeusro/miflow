@@ -5,3 +5,52 @@
 并加上一种拖拽式管理的功能，使用sqllite作为数据库，建立多个设备管理的工作流。
 
 假设已经绑定了homeassistant.local 和本地ip，修改监听端口为8123，
+
+--------------------------------------------------------------------------------
+@oracle.md 请更新 rooms.html 文件，实现以下功能和设计要求：
+
+页面整体为一个现代化的“房间/空间设备控制面板”，风格参考 Tailwind CSS Showcase 中的高端SaaS、dashboard、admin panel 示例（例如干净的深色/浅色模式切换、柔和渐变、微妙的玻璃态/neumorphism、光影效果、圆润卡片、微交互hover状态），也可以参考2025-2026年流行的智能家居/IoT dashboard 设计（如 TailAdmin、Flowbite dashboard、Smart Home Dashboard Template 等）。
+
+核心布局要求：
+- 使用响应式网格布局（grid 或 flex），在桌面端每行显示 3–4 个设备卡片，平板 2 个，手机 1 个。
+- 每个设备统一使用**矩形卡片**（推荐宽高比约 4:3 或 5:4，避免太方正），带有现代设计感。
+
+单个设备卡片必须包含以下元素，并注重视觉层次与设计细节：
+1. 头部区域（占卡片约30-40%高度）：
+   - 设备图标（使用 heroicons、lucide-icons 或 svg，尺寸48–64px，彩色或根据状态变色）
+   - 设备名称（大号字体，semibold）
+   - 右上角或叠加在图标上显示状态徽章（在线：绿色圆点+“Online”，离线：灰色+“Offline”，告警：红色闪烁/脉动+“Warning”，可选：休眠/充电中等状态）
+2. 中间主体区域：
+   - 当前主要状态信息（例如：温度 24.5℃、湿度 58%、功率 45W、亮度 80% 等，根据设备类型动态）
+   - 使用小而清晰的数字 + 单位，辅以微小的趋势箭头（↑↓）或进度条/环形图（如果适用）
+3. 底部控制区域：
+   - 简洁的开关 toggle（使用 Tailwind + Headless UI 或原生 checkbox 样式美化）
+   - 其他常见控制：滑块（brightness/volume）、颜色选择器（如果灯具）、增减按钮（温度/风速）
+   - 控制组件要有按下/激活时的微交互（scale-105、shadow-lg、bg-opacity变化）
+4. 整体卡片样式（必须有设计感）：
+   - 背景：白色/深灰 + 极淡渐变（from-gray-50 to-white 或 from-slate-800 to-slate-900）
+   - 边框：无边框 或 极细 1px + 圆角 xl (rounded-xl)
+   - 阴影：hover 前 shadow-md / shadow-lg，hover 后 shadow-2xl + scale-[1.02] + transition-all duration-300
+   - 可选高级效果：轻微玻璃态（backdrop-blur-sm bg-white/30 border border-white/20）、渐变边框、发光描边（针对在线/活跃设备）
+   - hover 时图标/开关轻微放大、颜色提亮
+   - 暗黑模式完整支持（使用 dark: 前缀）
+
+其他页面要求：
+- 顶部有房间选择/切换下拉菜单或 tab（例如：客厅、卧室、主卧、次卧）
+- 支持多选模式（checkbox 选中多个设备，然后批量开关）
+- 整体配色方案：主色调可自定义（建议蓝色/青色/紫色系渐变作为accent），支持明暗主题切换按钮
+- 加载状态：骨架屏（skeleton loading）卡片
+- 空状态：优雅的“暂无设备”插图 + 提示 + 添加设备按钮
+- 所有交互（开关、滑块等）需连接后端（通过 WebSocket 或 fetch API 更新状态）
+
+后端补充功能（Go语言）：
+- 新增/完善 GET /api/rooms/:roomId/devices → 返回设备列表（含id, name, type, status: {online, value, lastSeen} 等）
+- PATCH /api/devices/:id/control → 接收 {action: "toggle" | "set_brightness", value: 0-100} 等，更新设备状态并通过 WebSocket 广播
+- WebSocket 端点 /ws/rooms/:roomId 用于实时状态推送
+
+请生成完整的 rooms.html（内嵌 Tailwind CDN 或假设已配置好 Tailwind），包含必要的 Alpine.js / htmx / vanilla JS 实现交互逻辑，以及对应的 Go 后端 handler 示例代码。
+
+重点：页面整体要看起来高端、有质感、呼吸感强，像 2026 年的智能家居控制 App Web 版，而不是朴素的表单堆砌。优先使用现代 Tailwind 技巧（arbitrary values、@apply、group-hover 等）来提升视觉细节。
+
+--------------------------------------------------------------------------------
+

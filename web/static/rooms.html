@@ -3,100 +3,571 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>房间与设备 - miflow</title>
+  <title>智能家居控制 - miflow</title>
   <link href="/dist/output.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root { --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
+    .device-card { width: 100%; min-height: 320px; min-width: 0; }
+    .room-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; align-items: start; }
+    .card-glow-online { box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2), 0 4px 20px -4px rgba(34, 197, 94, 0.15); }
+    .card-glow-offline { box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.15); }
+    .toggle-thumb { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    .status-pulse { animation: status-pulse 2s ease-in-out infinite; }
+    @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .skeleton { background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    .dark .skeleton { background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%); background-size: 200% 100%; }
+    @keyframes shimmer { to { background-position: 200% 0; } }
+    .btn-press:active { transform: scale(0.98); }
+    .slider-thumb::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); cursor: pointer; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4); transition: transform 0.15s; }
+    .slider-thumb::-webkit-slider-thumb:hover { transform: scale(1.1); }
+    .slider-thumb::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); cursor: pointer; border: none; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4); }
+  </style>
 </head>
-<body class="min-h-screen bg-slate-50">
-  <nav class="bg-white border-b border-slate-200 px-4 py-3">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <a href="/" class="text-slate-800 font-semibold">miflow</a>
-      <div class="flex gap-4">
-        <a href="/rooms" class="text-emerald-600 font-medium">房间</a>
-        <a href="/app" class="text-slate-600 hover:text-slate-900">设备管理</a>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/20 font-[var(--font-sans)] transition-colors duration-300">
+  <!-- Nav -->
+  <nav class="sticky top-0 z-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-14">
+        <a href="/" class="text-slate-800 dark:text-slate-100 font-semibold tracking-tight">miflow</a>
+        <div class="flex items-center gap-4">
+          <button id="theme-toggle" type="button" class="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200" aria-label="切换主题">
+            <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg id="icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+          <a href="/app" class="text-sm text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">设备管理</a>
+        </div>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-6xl mx-auto p-4">
-    <h1 class="text-2xl font-semibold text-slate-800 mb-6">房间与设备</h1>
-    <div id="rooms-error" class="hidden rounded-lg bg-red-50 border border-red-200 p-3 text-red-700 text-sm mb-4"></div>
-    <div id="rooms-list" class="space-y-8"></div>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">智能家居控制</h1>
+      <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm">按房间查看并控制您的智能设备</p>
+    </div>
+
+    <!-- Home Tabs -->
+    <div class="mb-4">
+      <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">家庭</div>
+      <div id="home-tabs" class="flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-1">
+        <button type="button" data-home-id="__all__" class="home-tab px-4 py-2.5 rounded-xl text-sm font-medium bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/30 btn-press">全部</button>
+      </div>
+    </div>
+    <!-- Room Tabs -->
+    <div class="mb-6">
+      <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">房间</div>
+      <div id="room-tabs" class="flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-1">
+        <button type="button" data-room-id="__all__" data-home-id="__all__" class="room-tab px-4 py-2.5 rounded-xl text-sm font-medium bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/30 btn-press">全部</button>
+      </div>
+    </div>
+
+    <div id="rooms-error" class="hidden rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 p-4 text-red-700 dark:text-red-400 text-sm mb-6"></div>
+
+    <!-- Homes/Rooms/Devices (hierarchical) -->
+    <div id="homes-container" class="space-y-10">
+      <template id="skeleton-tpl">
+        <div class="device-card rounded-2xl p-5 flex flex-col bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 shadow-md">
+          <div class="flex-1 flex flex-col gap-3">
+            <div class="flex justify-between items-start">
+              <div class="skeleton w-12 h-12 rounded-2xl"></div>
+              <div class="skeleton w-16 h-6 rounded-full"></div>
+            </div>
+            <div class="skeleton w-3/4 h-5 rounded"></div>
+            <div class="skeleton w-1/2 h-4 rounded"></div>
+            <div class="mt-auto skeleton w-full h-10 rounded-xl"></div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 px-4">
+      <div class="w-32 h-32 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center mb-6">
+        <svg class="w-16 h-16 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+      </div>
+      <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">暂无设备</h3>
+      <p class="text-slate-500 dark:text-slate-400 text-sm text-center max-w-sm mb-6">请先登录并添加米家设备，或前往设备管理页面配置</p>
+      <a href="/login" class="px-6 py-3 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 transition-colors shadow-lg shadow-indigo-500/25 btn-press">添加设备</a>
+    </div>
   </main>
 
   <script>
-    function escapeHtml(s) {
-      if (!s) return '';
-      const div = document.createElement('div');
-      div.textContent = s;
-      return div.innerHTML;
+    const ICONS = {
+      light: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>',
+      switch: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>',
+      plug: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>',
+      speaker: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>',
+      sensor: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
+      default: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>'
+    };
+
+    function deviceType(model) {
+      if (!model) return 'default';
+      const m = (model || '').toLowerCase();
+      if (m.includes('light') || m.includes('lamp')) return 'light';
+      if (m.includes('switch')) return 'switch';
+      if (m.includes('plug') || m.includes('outlet')) return 'plug';
+      if (m.includes('speaker') || m.includes('wifispeaker')) return 'speaker';
+      if (m.includes('sensor') || m.includes('occupy')) return 'sensor';
+      return 'default';
     }
 
-    async function api(path) {
-      const res = await fetch(path);
+    function escapeHtml(s) {
+      if (!s) return '';
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, { headers: opts.headers || {}, ...opts });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.error || res.statusText);
       }
-      return res.json();
+      return res.status === 204 ? null : res.json();
+    }
+
+    let state = {
+      homes: [],
+      rooms: [],
+      devices: [],
+      selectedHomeId: '__all__',
+      selectedRoomId: '__all__',
+      selectedHomeIdForRoom: '',
+      dark: localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    };
+
+    function applyTheme() {
+      if (state.dark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+    }
+    applyTheme();
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      state.dark = !state.dark;
+      applyTheme();
+    });
+
+    const tabBase = 'px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 btn-press';
+    const tabActive = 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25';
+    const tabInactive = 'text-slate-600 dark:text-slate-400 bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700/60';
+
+    document.getElementById('home-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.home-tab');
+      if (!btn) return;
+      selectHome(btn.dataset.homeId || '__all__');
+    });
+
+    document.getElementById('room-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.room-tab');
+      if (!btn) return;
+      selectRoom(btn.dataset.roomId || '__all__', btn.dataset.homeId || '');
+    });
+
+    function filteredRooms() {
+      if (state.selectedHomeId === '__all__') return state.rooms;
+      return state.rooms.filter(r => (r.home_id || '').toString() === state.selectedHomeId);
+    }
+
+    function filteredDevices() {
+      let list = state.devices;
+      if (state.selectedHomeId !== '__all__') {
+        list = list.filter(d => (d.home_id || '').toString() === state.selectedHomeId);
+      }
+      if (state.selectedRoomId !== '__all__') {
+        list = list.filter(d => (d.room_id || '').toString() === state.selectedRoomId && (d.home_id || '').toString() === state.selectedHomeIdForRoom);
+      }
+      return list;
+    }
+
+    function renderHomeTabs() {
+      const container = document.getElementById('home-tabs');
+      const allBtn = container.querySelector('[data-home-id="__all__"]');
+      container.innerHTML = '';
+      container.appendChild(allBtn);
+      (state.homes || []).forEach(h => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `home-tab ${tabBase} ${tabInactive}`;
+        btn.dataset.homeId = h.home_id || '';
+        btn.textContent = h.home_name || '未命名家庭';
+        container.appendChild(btn);
+      });
+    }
+
+    function renderRoomTabs() {
+      const container = document.getElementById('room-tabs');
+      const allBtn = container.querySelector('[data-room-id="__all__"]');
+      allBtn.dataset.homeId = state.selectedHomeId;
+      container.innerHTML = '';
+      container.appendChild(allBtn);
+      const multiHome = (state.homes || []).length > 1;
+      filteredRooms().forEach(r => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `room-tab ${tabBase} ${tabInactive}`;
+        btn.dataset.roomId = r.room_id;
+        btn.dataset.homeId = r.home_id || '';
+        const homeName = multiHome && (state.homes || []).find(h => (h.home_id || '') === (r.home_id || ''))?.home_name;
+        btn.textContent = homeName ? `${r.room_name || '未命名'} (${homeName})` : (r.room_name || '未命名');
+        container.appendChild(btn);
+      });
+      updateTabStyles();
+    }
+
+    function selectHome(homeId) {
+      state.selectedHomeId = homeId || '__all__';
+      state.selectedRoomId = '__all__';
+      state.selectedHomeIdForRoom = '';
+      renderRoomTabs();
+      renderHomesContent();
+      updateTabStyles();
+    }
+
+    function selectRoom(roomId, homeId) {
+      state.selectedRoomId = roomId || '__all__';
+      state.selectedHomeIdForRoom = (roomId && roomId !== '__all__') ? (homeId || '') : '';
+      renderHomesContent();
+      updateTabStyles();
+    }
+
+    function updateTabStyles() {
+      document.querySelectorAll('.home-tab').forEach(btn => {
+        const isActive = (btn.dataset.homeId || '__all__') === state.selectedHomeId;
+        btn.className = `home-tab ${tabBase} ${isActive ? tabActive : tabInactive}`;
+      });
+      document.querySelectorAll('.room-tab').forEach(btn => {
+        const isRoomAll = btn.dataset.roomId === '__all__';
+        const isActive = isRoomAll
+          ? state.selectedRoomId === '__all__'
+          : btn.dataset.roomId === state.selectedRoomId && (btn.dataset.homeId || '') === state.selectedHomeIdForRoom;
+        btn.className = `room-tab ${tabBase} ${isActive ? tabActive : tabInactive}`;
+      });
+    }
+
+    async function getDeviceStatus(did) {
+      try {
+        return await api('/api/devices/' + encodeURIComponent(did) + '/status');
+      } catch { return null; }
+    }
+
+    async function setDeviceStatus(did, payload) {
+      return api('/api/devices/' + encodeURIComponent(did) + '/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function patchDeviceControl(did, action, value) {
+      return api('/api/devices/' + encodeURIComponent(did) + '/control', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, value })
+      });
+    }
+
+    function renderDeviceCard(d, status) {
+      const type = deviceType(d.model);
+      const icon = ICONS[type] || ICONS.default;
+      const online = status && status.supported && status.supported.length > 0;
+      const on = status && status.on;
+      const supported = (status && status.supported) || [];
+      const brightness = (status && status.brightness) ?? 0;
+      const volume = (status && status.volume) ?? 0;
+      const cardId = 'card-' + d.did.replace(/[^a-z0-9]/gi, '-');
+
+      const statusBadge = !online
+        ? '<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Offline</span>'
+        : on
+          ? '<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 status-pulse"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Online</span>'
+          : '<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Off</span>';
+
+      let mainValue = '';
+      if (supported.includes('brightness')) mainValue = `<div class="text-2xl font-bold text-slate-800 dark:text-slate-100">${brightness}<span class="text-sm font-normal text-slate-500 dark:text-slate-400 ml-0.5">%</span></div><div class="text-xs text-slate-500 dark:text-slate-400">亮度</div>`;
+      else if (supported.includes('volume')) mainValue = `<div class="text-2xl font-bold text-slate-800 dark:text-slate-100">${volume}<span class="text-sm font-normal text-slate-500 dark:text-slate-400 ml-0.5">%</span></div><div class="text-xs text-slate-500 dark:text-slate-400">音量</div>`;
+      else if (supported.includes('on')) mainValue = `<div class="text-2xl font-bold text-slate-800 dark:text-slate-100">${on ? '开' : '关'}</div><div class="text-xs text-slate-500 dark:text-slate-400">状态</div>`;
+      else mainValue = '<div class="text-sm text-slate-500 dark:text-slate-400">—</div>';
+
+      const card = document.createElement('div');
+      card.id = cardId;
+      card.className = `device-card group rounded-2xl p-5 flex flex-col bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-0.5 ${online && on ? 'card-glow-online border-emerald-200/50 dark:border-emerald-800/30' : 'card-glow-offline border-slate-200/60 dark:border-slate-700/50'} shadow-lg`;
+      card.dataset.did = d.did;
+      card.dataset.roomId = d.room_id || '';
+      card.dataset.homeId = d.home_id || '';
+
+      const canToggle = supported.includes('on');
+      card.innerHTML = `
+        <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div class="flex justify-between items-start gap-2 mb-2 shrink-0">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${on ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'}">${icon}</div>
+            <div class="flex items-center gap-2">
+              <button type="button" role="switch" aria-checked="${on}" data-did="${escapeHtml(d.did)}" data-on="${on}"
+                class="device-power-toggle w-5 h-5 rounded-md border-2 transition-all focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${canToggle ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'} ${on ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300 dark:border-slate-600'}"
+                title="${canToggle ? '点击开关' : '不支持'}" ${canToggle ? '' : 'disabled'}>
+              </button>
+              ${statusBadge}
+            </div>
+          </div>
+          <div class="font-semibold text-slate-800 dark:text-slate-100 truncate text-lg mb-1 shrink-0">${escapeHtml(d.name || d.did)}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 truncate mb-2 shrink-0">${escapeHtml(d.model || d.did)}</div>
+          <div class="mb-2 shrink-0">${mainValue}</div>
+          <div class="mt-auto space-y-2 shrink-0">
+            ${supported.includes('brightness') ? `
+            <div class="flex items-center gap-2">
+              <input type="range" min="0" max="100" value="${brightness}" class="slider-thumb flex-1 h-2 rounded-full bg-slate-200 dark:bg-slate-600 appearance-none cursor-pointer" data-did="${escapeHtml(d.did)}" data-prop="brightness">
+              <span class="text-xs font-medium text-slate-600 dark:text-slate-400 w-8">${brightness}%</span>
+            </div>` : ''}
+            ${supported.includes('on') ? `
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-500 dark:text-slate-400">开关</span>
+              <button type="button" role="switch" data-on="${on}" data-did="${escapeHtml(d.did)}"
+                class="toggle-btn relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${on ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-600'} hover:opacity-90 btn-press">
+                <span class="toggle-thumb pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-lg transform mt-0.5 ${on ? 'translate-x-5' : 'translate-x-0.5'}"></span>
+              </button>
+            </div>` : ''}
+          </div>
+        </div>
+      `;
+
+      const toggleBtn = card.querySelector('.toggle-btn');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', async () => {
+          const nextOn = !(toggleBtn.dataset.on === 'true');
+          toggleBtn.disabled = true;
+          try {
+            await setDeviceStatus(d.did, { on: nextOn });
+            toggleBtn.dataset.on = nextOn;
+            toggleBtn.classList.toggle('bg-indigo-500', nextOn);
+            toggleBtn.classList.toggle('bg-slate-200', !nextOn);
+            toggleBtn.classList.toggle('dark:bg-slate-600', !nextOn);
+            toggleBtn.querySelector('.toggle-thumb')?.classList.toggle('translate-x-5', nextOn);
+            toggleBtn.querySelector('.toggle-thumb')?.classList.toggle('translate-x-0.5', !nextOn);
+            updateCardOnState(card, nextOn);
+            const powerBtn = card.querySelector('.device-power-toggle');
+            if (powerBtn) {
+              powerBtn.dataset.on = nextOn;
+              powerBtn.setAttribute('aria-checked', nextOn);
+              powerBtn.classList.toggle('border-indigo-500', nextOn);
+              powerBtn.classList.toggle('bg-indigo-500', nextOn);
+              powerBtn.classList.toggle('border-slate-300', !nextOn);
+              powerBtn.classList.toggle('dark:border-slate-600', !nextOn);
+            }
+          } catch (e) { console.error(e); }
+          finally { toggleBtn.disabled = false; }
+        });
+      }
+
+      const slider = card.querySelector('.slider-thumb');
+      if (slider) {
+        slider.addEventListener('input', (e) => {
+          const v = parseInt(e.target.value);
+          e.target.nextElementSibling.textContent = v + '%';
+        });
+        slider.addEventListener('change', async (e) => {
+          const v = parseInt(e.target.value);
+          try {
+            await setDeviceStatus(d.did, { brightness: v });
+          } catch (err) { console.error(err); }
+        });
+      }
+
+      const powerToggle = card.querySelector('.device-power-toggle');
+      if (powerToggle && canToggle) {
+        powerToggle.addEventListener('click', async () => {
+          const nextOn = !(powerToggle.dataset.on === 'true');
+          powerToggle.disabled = true;
+          try {
+            await setDeviceStatus(d.did, { on: nextOn });
+            powerToggle.dataset.on = nextOn;
+            powerToggle.setAttribute('aria-checked', nextOn);
+            powerToggle.classList.toggle('border-indigo-500', nextOn);
+            powerToggle.classList.toggle('bg-indigo-500', nextOn);
+            powerToggle.classList.toggle('border-slate-300', !nextOn);
+            powerToggle.classList.toggle('dark:border-slate-600', !nextOn);
+            updateCardOnState(card, nextOn);
+            const toggleBtn = card.querySelector('.toggle-btn');
+            if (toggleBtn) {
+              toggleBtn.dataset.on = nextOn;
+              toggleBtn.classList.toggle('bg-indigo-500', nextOn);
+              toggleBtn.classList.toggle('bg-slate-200', !nextOn);
+              toggleBtn.classList.toggle('dark:bg-slate-600', !nextOn);
+              toggleBtn.querySelector('.toggle-thumb')?.classList.toggle('translate-x-5', nextOn);
+              toggleBtn.querySelector('.toggle-thumb')?.classList.toggle('translate-x-0.5', !nextOn);
+            }
+          } catch (err) { console.error(err); }
+          finally { powerToggle.disabled = false; }
+        });
+      }
+
+      return card;
+    }
+
+    function updateCardOnState(card, on) {
+      const badge = card.querySelector('.status-badge');
+      if (badge) {
+        badge.outerHTML = on
+          ? '<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 status-pulse"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Online</span>'
+          : '<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Off</span>';
+      }
+      const iconWrap = card.querySelector('.w-14.h-14');
+      if (iconWrap) {
+        iconWrap.classList.toggle('bg-indigo-100', on);
+        iconWrap.classList.toggle('dark:bg-indigo-900/40', on);
+        iconWrap.classList.toggle('text-indigo-600', on);
+        iconWrap.classList.toggle('dark:text-indigo-400', on);
+        iconWrap.classList.toggle('bg-slate-100', !on);
+        iconWrap.classList.toggle('dark:bg-slate-700/50', !on);
+        iconWrap.classList.toggle('text-slate-500', !on);
+        iconWrap.classList.toggle('dark:text-slate-400', !on);
+      }
+      card.classList.toggle('card-glow-online', on);
+      card.classList.toggle('border-emerald-200/50', on);
+      card.classList.toggle('dark:border-emerald-800/30', on);
+      card.classList.toggle('card-glow-offline', !on);
+      card.classList.toggle('border-slate-200/60', !on);
+      card.classList.toggle('dark:border-slate-700/50', !on);
+      const valEl = card.querySelector('.text-2xl');
+      if (valEl) valEl.textContent = on ? '开' : '关';
+    }
+
+    function getHomesToRender() {
+      let homes = state.homes || [];
+      if (state.selectedHomeId !== '__all__') {
+        homes = homes.filter(h => (h.home_id || '').toString() === state.selectedHomeId);
+      }
+      if (state.selectedRoomId !== '__all__') {
+        if (state.selectedHomeIdForRoom) {
+          const byHome = homes.filter(h => (h.home_id || '').toString() === state.selectedHomeIdForRoom);
+          if (byHome.length > 0) homes = byHome;
+        }
+        if (homes.length === 0) {
+          homes = (state.homes || []).filter(h => (h.rooms || []).some(r => (r.room_id || '').toString() === state.selectedRoomId));
+        }
+      }
+      return homes;
+    }
+
+    function getRoomsToRender(home) {
+      const rooms = home.rooms || [];
+      if (state.selectedRoomId === '__all__') return rooms;
+      return rooms.filter(r => (r.room_id || '').toString() === state.selectedRoomId);
+    }
+
+    async function renderHomesContent() {
+      const container = document.getElementById('homes-container');
+      const empty = document.getElementById('empty-state');
+      const homes = getHomesToRender();
+
+      if (homes.length === 0 || homes.every(h => !(h.rooms || []).some(r => (r.devices || []).length > 0))) {
+        container.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      container.innerHTML = '';
+      for (const home of homes) {
+        const rooms = getRoomsToRender(home);
+        const roomsWithDevices = rooms.filter(r => (r.devices || []).length > 0);
+        if (roomsWithDevices.length === 0) continue;
+
+        const homeSection = document.createElement('section');
+        homeSection.className = 'home-section rounded-2xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/50 overflow-hidden shadow-sm';
+        homeSection.innerHTML = `
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-gradient-to-r from-indigo-50/50 to-transparent dark:from-indigo-950/20">
+            <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              ${escapeHtml(home.home_name || '未命名家庭')}
+            </h2>
+          </div>
+          <div class="p-6 space-y-8"></div>
+        `;
+        const roomsContainer = homeSection.querySelector('.space-y-8');
+
+        for (const room of roomsWithDevices) {
+          const devices = room.devices || [];
+          const roomDiv = document.createElement('div');
+          roomDiv.className = 'room-block';
+          roomDiv.innerHTML = `
+            <div class="mb-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+              <h3 class="text-sm font-medium text-slate-600 dark:text-slate-400 shrink-0 leading-none">${escapeHtml(room.room_name || '未命名房间')}</h3>
+              <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0 leading-none">${devices.length} 个设备</span>
+            </div>
+            <div class="room-devices"></div>
+          `;
+          const devicesGrid = roomDiv.querySelector('.room-devices');
+
+          for (let i = 0; i < devices.length; i++) {
+            const d = { ...devices[i], room_id: room.room_id, room_name: room.room_name, home_id: home.home_id };
+            const status = await getDeviceStatus(d.did);
+            devicesGrid.appendChild(renderDeviceCard(d, status));
+          }
+          roomsContainer.appendChild(roomDiv);
+        }
+        container.appendChild(homeSection);
+      }
     }
 
     async function loadRooms() {
       try {
-        const homes = await api('/api/rooms');
-        const el = document.getElementById('rooms-list');
-        el.innerHTML = '';
         document.getElementById('rooms-error').classList.add('hidden');
+        const tpl = document.getElementById('skeleton-tpl');
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[5px]';
+        for (let i = 0; i < 8 && tpl; i++) grid.appendChild(tpl.content.cloneNode(true));
+        document.getElementById('homes-container').innerHTML = '';
+        document.getElementById('homes-container').appendChild(grid);
+        const homes = await api('/api/rooms');
+        state.homes = homes || [];
+        state.rooms = [];
+        state.devices = [];
+        state.selectedHomeId = '__all__';
+        state.selectedRoomId = '__all__';
+        state.selectedHomeIdForRoom = '';
 
-        if (!homes || homes.length === 0) {
-          el.innerHTML = '<p class="text-slate-500">暂无家庭或房间数据</p>';
-          return;
-        }
-
-        homes.forEach(home => {
-          const homeSection = document.createElement('section');
-          homeSection.className = 'rounded-xl bg-white border border-slate-200 overflow-hidden';
-          homeSection.innerHTML = `
-            <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
-              <h2 class="text-lg font-semibold text-slate-800">${escapeHtml(home.home_name || '我的家')}</h2>
-            </div>
-            <div class="p-4 space-y-6"></div>
-          `;
-          const roomsContainer = homeSection.querySelector('.space-y-6');
-
+        (state.homes || []).forEach(home => {
           (home.rooms || []).forEach(room => {
-            const roomDiv = document.createElement('div');
-            roomDiv.className = 'border border-slate-200 rounded-lg overflow-hidden';
-            const devices = room.devices || [];
-            roomDiv.innerHTML = `
-              <div class="bg-slate-100/80 px-4 py-2 text-sm font-medium text-slate-700">
-                ${escapeHtml(room.room_name || '未命名房间')}
-                <span class="text-slate-500 font-normal ml-2">(${devices.length} 个设备)</span>
-              </div>
-              <div class="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"></div>
-            `;
-            const devicesGrid = roomDiv.querySelector('.grid');
-            devices.forEach(d => {
-              const card = document.createElement('a');
-              card.href = '/app';
-              card.className = 'block rounded-lg border border-slate-200 p-3 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors';
-              card.innerHTML = `
-                <div class="font-medium text-slate-800">${escapeHtml(d.name || d.did)}</div>
-                <div class="text-xs text-slate-500 mt-1">${escapeHtml(d.model || '')} · ${escapeHtml(d.did)}</div>
-              `;
-              devicesGrid.appendChild(card);
+            state.rooms.push({
+              room_id: room.room_id,
+              room_name: room.room_name,
+              home_id: home.home_id
             });
-            if (devices.length === 0) {
-              devicesGrid.innerHTML = '<p class="text-slate-400 text-sm col-span-full">暂无设备</p>';
-            }
-            roomsContainer.appendChild(roomDiv);
+            (room.devices || []).forEach(d => {
+              state.devices.push({
+                ...d,
+                room_id: room.room_id,
+                room_name: room.room_name,
+                home_id: home.home_id
+              });
+            });
           });
-
-          el.appendChild(homeSection);
         });
+
+        renderHomeTabs();
+        renderRoomTabs();
+        if (state.devices.length === 0) {
+          document.getElementById('homes-container').innerHTML = '';
+          document.getElementById('empty-state').classList.remove('hidden');
+        } else {
+          await renderHomesContent();
+          updateTabStyles();
+        }
       } catch (e) {
         document.getElementById('rooms-error').textContent = e.message;
         document.getElementById('rooms-error').classList.remove('hidden');
-        document.getElementById('rooms-list').innerHTML = '';
+        document.getElementById('homes-container').innerHTML = '';
+        document.getElementById('empty-state').classList.remove('hidden');
       }
     }
 

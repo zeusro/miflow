@@ -52,11 +52,15 @@ func RegisterRoutes(s *ghttp.Server, a *web.App) {
 
 	s.Group("/api/rooms", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) { RoomsList(a, r) })
+		group.GET("/{roomId}/devices", func(r *ghttp.Request) { RoomsDevicesList(a, r) })
 	})
 	s.Group("/api/devices", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) { DevicesList(a, r) })
 		group.GET("/{id}", func(r *ghttp.Request) { DeviceGet(a, r) })
 		group.GET("/{id}/spec", func(r *ghttp.Request) { DeviceSpec(a, r) })
+		group.GET("/{id}/status", func(r *ghttp.Request) { DeviceStatus(a, r) })
+		group.POST("/{id}/status", func(r *ghttp.Request) { DeviceSetStatus(a, r) })
+		group.PATCH("/{id}/control", func(r *ghttp.Request) { DeviceControlPatch(a, r) })
 		group.POST("/{id}/control", func(r *ghttp.Request) { DeviceControl(a, r) })
 	})
 	s.Group("/api/workflows", func(group *ghttp.RouterGroup) {
