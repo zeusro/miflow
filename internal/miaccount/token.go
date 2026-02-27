@@ -5,12 +5,12 @@ import (
 	"os"
 )
 
-// TokenStore persists and loads Xiaomi auth token.
+// TokenStore 持久化并加载小米认证 token。
 type TokenStore struct {
 	Path string
 }
 
-// Load reads token from file. Returns nil if file missing or invalid.
+// Load 从文件读取 token。文件不存在或无效时返回 nil。
 func (s *TokenStore) Load() *Token {
 	if s == nil || s.Path == "" {
 		return nil
@@ -27,7 +27,7 @@ func (s *TokenStore) Load() *Token {
 }
 
 
-// Save writes token to file. If token is nil, removes file.
+// Save 将 token 写入文件。token 为 nil 时删除文件。
 func (s *TokenStore) Save(t *Token) error {
 	if s == nil || s.Path == "" {
 		return nil
@@ -43,7 +43,7 @@ func (s *TokenStore) Save(t *Token) error {
 	return os.WriteFile(s.Path, data, 0600)
 }
 
-// SaveOAuth writes OAuth token to file.
+// SaveOAuth 将 OAuth token 写入文件。
 func (s *TokenStore) SaveOAuth(t *OAuthToken) error {
 	if s == nil || s.Path == "" {
 		return nil
@@ -59,7 +59,7 @@ func (s *TokenStore) SaveOAuth(t *OAuthToken) error {
 	return os.WriteFile(s.Path, data, 0600)
 }
 
-// LoadOAuth reads OAuth token from file. Returns nil if not found or invalid.
+// LoadOAuth 从文件读取 OAuth token。未找到或无效时返回 nil。
 func (s *TokenStore) LoadOAuth() *OAuthToken {
 	if s == nil || s.Path == "" {
 		return nil

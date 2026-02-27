@@ -1,4 +1,4 @@
-// Package workflow provides SQLite-backed workflow storage for device management.
+// Package workflow 提供基于 SQLite 的设备管理工作流存储。
 package workflow
 
 import (
@@ -13,7 +13,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// StepType defines workflow step kinds.
+// StepType 定义工作流步骤类型。
 type StepType string
 
 const (
@@ -23,7 +23,7 @@ const (
 	StepTypeDelay   StepType = "delay"
 )
 
-// Step describes one action in a workflow.
+// Step 描述工作流中的一个动作。
 type Step struct {
 	Type       StepType `json:"type"`
 	Label      string   `json:"label,omitempty"`
@@ -34,7 +34,7 @@ type Step struct {
 	DurationMS int      `json:"duration_ms,omitempty"`
 }
 
-// Workflow is a device management workflow.
+// Workflow 是设备管理工作流。
 type Workflow struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -44,13 +44,13 @@ type Workflow struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// Store persists workflows in SQLite.
+// Store 将工作流持久化到 SQLite。
 type Store struct {
 	mu sync.RWMutex
 	db *sql.DB
 }
 
-// NewStore creates a workflow store. dataDir is the directory for miflow.db.
+// NewStore 创建工作流存储。dataDir 为 miflow.db 所在目录。
 func NewStore(dataDir string) (*Store, error) {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return nil, err
@@ -69,6 +69,7 @@ func NewStore(dataDir string) (*Store, error) {
 	return s, nil
 }
 
+// migrate 执行数据库迁移，创建 workflows 表。
 func (s *Store) migrate() error {
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS workflows (
@@ -83,7 +84,7 @@ func (s *Store) migrate() error {
 	return err
 }
 
-// List returns all workflows.
+// List 返回所有工作流。
 func (s *Store) List() ([]Workflow, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -111,7 +112,7 @@ func (s *Store) List() ([]Workflow, error) {
 	return out, rows.Err()
 }
 
-// Get returns a workflow by ID.
+// Get 按 ID 返回工作流。
 func (s *Store) Get(id string) (*Workflow, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -134,7 +135,7 @@ func (s *Store) Get(id string) (*Workflow, error) {
 	return &w, nil
 }
 
-// Upsert creates or updates a workflow.
+// Upsert 创建或更新工作流。
 func (s *Store) Upsert(w *Workflow) error {
 	if w == nil {
 		return fmt.Errorf("workflow is nil")
@@ -164,7 +165,7 @@ func (s *Store) Upsert(w *Workflow) error {
 	return err
 }
 
-// Delete removes a workflow.
+// Delete 删除工作流。
 func (s *Store) Delete(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -172,6 +173,7 @@ func (s *Store) Delete(id string) error {
 	return err
 }
 
+// sanitizeID 将名称规范化为 ID 格式（小写、连字符，最长 32 字符）。
 func sanitizeID(s string) string {
 	var out []rune
 	for _, r := range s {

@@ -1,4 +1,4 @@
-// Package login implements the m login subcommand (OAuth 2.0 flow).
+// Package login 实现 m login 子命令（OAuth 2.0 流程）。
 package login
 
 import (
@@ -9,12 +9,12 @@ import (
 	"github.com/zeusro/miflow/internal/miaccount"
 )
 
-// Login runs the OAuth 2.0 login flow.
+// Login 运行 OAuth 2.0 登录流程。
 type Login struct {
 	TokenPath string
 }
 
-// Run executes the login command.
+// Run 执行登录命令。
 func (l Login) Run() {
 	oc := miaccount.NewOAuthClient()
 	authURL := oc.GenAuthURL("", "", true)

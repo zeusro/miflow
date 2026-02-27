@@ -10,8 +10,8 @@ import (
 	"github.com/zeusro/miflow/internal/miioservice"
 )
 
-// Run parses text and runs the appropriate MiIO/MIoT command. did can be device ID or name.
-// prefix is used in help (e.g. "m ").
+// Run 解析文本并执行相应的 MiIO/MIoT 命令。did 可为设备 ID 或名称。
+// prefix 用于帮助信息（如 "m "）。
 func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
@@ -24,7 +24,7 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 		arg = strings.TrimSpace(parts[1])
 	}
 
-	// MiIO raw: /uri [data]
+	// MiIO 原始调用: /uri [data]
 	if strings.HasPrefix(cmd, "/") {
 		var data interface{}
 		if arg != "" {
@@ -35,7 +35,7 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 		return svc.MiIORequest(cmd, data)
 	}
 
-	// MIoT raw: prop/get, prop/set, action + JSON
+	// MIoT 原始调用: prop/get, prop/set, action + JSON
 	if cmd == "prop" || strings.HasPrefix(cmd, "prop/") || cmd == "action" {
 		var params interface{}
 		if arg != "" {
@@ -205,6 +205,7 @@ func Run(svc *miioservice.Service, did, text, prefix string) (interface{}, error
 	return svc.HomeGetProps(did, propNames)
 }
 
+// splitTwins 按 sep 分割字符串，缺省时右侧为 defaultRight。
 func splitTwins(s, sep, defaultRight string) (string, string) {
 	i := strings.Index(s, sep)
 	if i < 0 {
@@ -213,6 +214,7 @@ func splitTwins(s, sep, defaultRight string) (string, string) {
 	return s[:i], s[i+len(sep):]
 }
 
+// isDigits 判断字符串是否全为数字。
 func isDigits(s string) bool {
 	for _, r := range s {
 		if r < '0' || r > '9' {
@@ -222,6 +224,7 @@ func isDigits(s string) bool {
 	return s != ""
 }
 
+// parseBool 解析布尔字符串（1/true/yes 为 true）。
 func parseBool(s string) bool {
 	return s == "true" || s == "1"
 }
@@ -246,7 +249,7 @@ func stringOrValue(s string) interface{} {
 	return s
 }
 
-// Help returns command help string.
+// Help 返回命令帮助字符串。
 func Help(did, prefix string) string {
 	if did == "" {
 		did = "267090026"

@@ -2,18 +2,18 @@ package miaccount
 
 import "encoding/json"
 
-// Token holds Xiaomi account auth data.
-// Keys: deviceId, userId, passToken, and per-service keys like "micoapi", "xiaomiio"
-// with value being [ssecurity, serviceToken].
+// Token 保存小米账号认证数据。
+// 键：deviceId、userId、passToken，以及按服务分的键如 "micoapi"、"xiaomiio"，
+// 值为 [ssecurity, serviceToken]。
 type Token struct {
 	DeviceID  string            `json:"deviceId"`
 	UserID    string            `json:"userId,omitempty"`
 	PassToken string            `json:"passToken,omitempty"`
-	Services  map[string][]string `json:"-"` // sid -> [ssecurity, serviceToken]; serialized as flat keys
+	Services  map[string][]string `json:"-"` // sid -> [ssecurity, serviceToken]；序列化为扁平键
 }
 
-// UnmarshalJSON supports both legacy format (sids as top-level keys with [ssecurity, serviceToken])
-// and deviceId/userId/passToken.
+// UnmarshalJSON 支持旧版格式（sids 作为顶层键，值为 [ssecurity, serviceToken]）
+// 以及 deviceId/userId/passToken.
 func (t *Token) UnmarshalJSON(data []byte) error {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {

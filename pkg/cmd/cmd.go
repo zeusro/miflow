@@ -1,5 +1,5 @@
-// Package cmd provides the root command and subcommand registration for miflow CLI.
-// Structure follows kubectl-style: pkg/cmd/<subcommand>/ for each subcommand.
+// Package cmd 提供 miflow CLI 的根命令和子命令注册。
+// 结构遵循 kubectl 风格：每个子命令对应 pkg/cmd/<subcommand>/。
 package cmd
 
 import (
@@ -19,7 +19,7 @@ import (
 
 const prefix = "m "
 
-// Usage prints short usage for m.
+// Usage 打印 m 的简短用法。
 func Usage() {
 	fmt.Fprintf(os.Stderr, "m - XiaoMi MIoT + Mina CLI (OAuth 2.0)\n\n")
 	fmt.Fprintf(os.Stderr, "First run: m login\n")
@@ -30,7 +30,7 @@ func Usage() {
 	fmt.Fprint(os.Stderr, miiocommand.Help("", prefix))
 }
 
-// FullHelp returns the complete help string.
+// FullHelp 返回完整帮助字符串。
 func FullHelp() string {
 	return `m - XiaoMi MIoT + Mina CLI (OAuth 2.0)
 
@@ -88,7 +88,7 @@ EXAMPLES
 `
 }
 
-// Run executes the m command with given args.
+// Run 使用给定参数执行 m 命令。
 func Run(args []string) {
 	for len(args) > 0 && strings.HasPrefix(args[0], "-v") {
 		args = args[1:]
@@ -140,7 +140,7 @@ func Run(args []string) {
 		return
 	}
 
-	// MiIO/MIoT
+	// MiIO/MIoT 命令
 	text := strings.Join(args, " ")
 	result, err := miiocommand.Run(ioSvc, did, text, prefix)
 	if err != nil {

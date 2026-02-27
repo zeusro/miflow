@@ -29,6 +29,7 @@ var (
 	initOnce   sync.Once
 )
 
+// initRegistry 初始化型号注册表，加载 model->URN 映射。
 func initRegistry() {
 	initOnce.Do(func() {
 		for _, model := range Models {

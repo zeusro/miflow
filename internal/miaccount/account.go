@@ -7,10 +7,12 @@ import (
 	"github.com/zeusro/miflow/internal/config"
 )
 
+// httpDebug 返回是否开启 HTTP 调试日志。
 func httpDebug() bool {
 	return config.Get().Debug
 }
 
+// logHttpReq 在调试模式下记录 HTTP 请求。
 func logHttpReq(method, url string, reqBody []byte) {
 	if !httpDebug() {
 		return
@@ -23,6 +25,7 @@ func logHttpReq(method, url string, reqBody []byte) {
 	}
 }
 
+// logHttpResp 在调试模式下记录 HTTP 响应。
 func logHttpResp(status int, body []byte) {
 	if !httpDebug() {
 		return
@@ -35,7 +38,7 @@ func logHttpResp(status int, body []byte) {
 	}
 }
 
-// RandString returns a random string of length n (for deviceId, requestId, etc.).
+// RandString 返回长度为 n 的随机字符串（用于 deviceId、requestId 等）。
 func RandString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, n)

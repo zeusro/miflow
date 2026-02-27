@@ -1,4 +1,4 @@
-// Command web runs the miflow web server with GoFrame.
+// Command web 使用 GoFrame 运行 miflow 网页服务器。
 package main
 
 import (
@@ -6,27 +6,13 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/zeusro/miflow/internal/config"
-	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/web"
 	"github.com/zeusro/miflow/web/api"
 )
-
-// pendingOAuth stores OAuthClient by state for callback; device_id must match login.
-var (
-	pendingOAuthMu sync.Mutex
-	pendingOAuth   = make(map[string]*pendingOAuthEntry)
-)
-
-type pendingOAuthEntry struct {
-	oc        *miaccount.OAuthClient
-	createdAt time.Time
-}
 
 func main() {
 	a, err := web.NewApp()
@@ -63,11 +49,11 @@ func main() {
 			r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 			r.Response.Write(data)
 		})
-		group.GET("/login", handleLogin)
-		group.GET("/callback", handleCallback)
+		group.GET("/login", func(r *ghttp.Request) { api.Login(a, r) })
+		group.GET("/callback", func(r *ghttp.Request) { api.Callback(a, r) })
 	})
 
-	// API: devices (DDD - device domain)
+	// API: 设备 (DDD - 设备领域)
 	s.Group("/api/devices", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) { api.DevicesList(a, r) })
 		group.GET("/{id}", func(r *ghttp.Request) { api.DeviceGet(a, r) })
@@ -75,7 +61,7 @@ func main() {
 		group.POST("/{id}/control", func(r *ghttp.Request) { api.DeviceControl(a, r) })
 	})
 
-	// API: workflows (DDD - workflow domain)
+	// API: 工作流 (DDD - 工作流领域)
 	s.Group("/api/workflows", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) { api.WorkflowsList(a, r) })
 		group.GET("/{id}", func(r *ghttp.Request) { api.WorkflowGet(a, r) })
@@ -103,88 +89,4 @@ func main() {
 
 	g.Log().Infof(context.Background(), "miflow web server listening on %s", addr)
 	s.Run()
-}
-
-func handleLogin(r *ghttp.Request) {
-	oc := miaccount.NewOAuthClient()
-	pendingOAuthMu.Lock()
-	// Clean up entries older than 10 minutes
-	for state, e := range pendingOAuth {
-		if time.Since(e.createdAt) > 10*time.Minute {
-			delete(pendingOAuth, state)
-		}
-	}
-	pendingOAuth[oc.State] = &pendingOAuthEntry{oc: oc, createdAt: time.Now()}
-	pendingOAuthMu.Unlock()
-
-	authURL := oc.GenAuthURL("", "", true)
-	data, err := web.RenderLoginBytes(authURL)
-	if err != nil {
-		r.Response.WriteStatus(http.StatusInternalServerError)
-		r.Response.Write([]byte("模板渲染失败"))
-		return
-	}
-	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	r.Response.Write(data)
-}
-
-func handleCallback(r *ghttp.Request) {
-	code := r.Get("code").String()
-	state := r.Get("state").String()
-	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	writeError := func(status int, title, message string) {
-		data, err := web.RenderErrorBytes(title, message)
-		if err != nil {
-			r.Response.WriteStatus(status)
-			r.Response.Write([]byte(title + ": " + message))
-			return
-		}
-		r.Response.WriteStatus(status)
-		r.Response.Write(data)
-	}
-
-	if code == "" {
-		writeError(http.StatusBadRequest, "授权失败", "缺少授权码 (code)，请重新登录。")
-		return
-	}
-
-	var oc *miaccount.OAuthClient
-	pendingOAuthMu.Lock()
-	if e, ok := pendingOAuth[state]; ok {
-		oc = e.oc
-		delete(pendingOAuth, state)
-	}
-	pendingOAuthMu.Unlock()
-
-	if oc == nil {
-		writeError(http.StatusBadRequest, "授权失败", "未找到对应的登录会话 (state 不匹配)，请从 /login 重新发起授权。")
-		return
-	}
-
-	token, err := oc.GetToken(code)
-	if err != nil {
-		writeError(http.StatusInternalServerError, "Token 获取失败", err.Error())
-		return
-	}
-
-	cfg := config.Get()
-	tokenPath := cfg.TokenPath
-	if tokenPath == "" {
-		tokenPath = ".mi.token"
-	}
-	store := &miaccount.TokenStore{Path: tokenPath}
-	if err := store.SaveOAuth(token); err != nil {
-		writeError(http.StatusInternalServerError, "Token 保存失败", err.Error())
-		return
-	}
-
-	data, err := web.RenderCallbackSuccessBytes()
-	if err != nil {
-		r.Response.WriteStatus(http.StatusOK)
-		r.Response.Write([]byte("登录成功，token 已保存。"))
-		return
-	}
-	r.Response.WriteStatus(http.StatusOK)
-	r.Response.Write(data)
 }

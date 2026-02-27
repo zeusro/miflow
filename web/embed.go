@@ -1,4 +1,4 @@
-// Package web provides embedded static assets for the miflow web server.
+// Package web 为 miflow 网页服务器提供内嵌的静态资源。
 package web
 
 import (
@@ -11,7 +11,7 @@ import (
 //go:embed static templates
 var StaticFS embed.FS
 
-// Templates are parsed Go templates for server-rendered pages.
+// Templates 是用于服务端渲染页面的已解析 Go 模板。
 var Templates *template.Template
 
 func init() {
@@ -22,12 +22,12 @@ func init() {
 	}
 }
 
-// RenderLogin writes the login page with authURL to w.
+// RenderLogin 将带 authURL 的登录页写入 w。
 func RenderLogin(w io.Writer, authURL string) error {
 	return Templates.ExecuteTemplate(w, "login.html", map[string]string{"AuthURL": authURL})
 }
 
-// RenderLoginBytes returns the login page HTML as bytes.
+// RenderLoginBytes 返回登录页 HTML 的字节形式。
 func RenderLoginBytes(authURL string) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := RenderLogin(&buf, authURL); err != nil {
@@ -36,12 +36,12 @@ func RenderLoginBytes(authURL string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// RenderError writes the error page with title and message to w.
+// RenderError 将带标题和消息的错误页写入 w。
 func RenderError(w io.Writer, title, message string) error {
 	return Templates.ExecuteTemplate(w, "error.html", map[string]string{"Title": title, "Message": message})
 }
 
-// RenderErrorBytes returns the error page HTML as bytes.
+// RenderErrorBytes 返回错误页 HTML 的字节形式。
 func RenderErrorBytes(title, message string) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := RenderError(&buf, title, message); err != nil {
@@ -50,12 +50,12 @@ func RenderErrorBytes(title, message string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// RenderCallbackSuccess writes the callback success page to w.
+// RenderCallbackSuccess 将回调成功页写入 w。
 func RenderCallbackSuccess(w io.Writer) error {
 	return Templates.ExecuteTemplate(w, "callback-success.html", nil)
 }
 
-// RenderCallbackSuccessBytes returns the callback success page HTML as bytes.
+// RenderCallbackSuccessBytes 返回回调成功页 HTML 的字节形式。
 func RenderCallbackSuccessBytes() ([]byte, error) {
 	var buf bytes.Buffer
 	if err := RenderCallbackSuccess(&buf); err != nil {
@@ -64,15 +64,29 @@ func RenderCallbackSuccessBytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// RenderDefault writes the default fallback index page to w.
+// RenderDefault 将默认备用首页写入 w。
 func RenderDefault(w io.Writer) error {
 	return Templates.ExecuteTemplate(w, "default.html", nil)
 }
 
-// RenderDefaultBytes returns the default fallback index page HTML as bytes.
+// RenderDefaultBytes 返回默认备用首页 HTML 的字节形式。
 func RenderDefaultBytes() ([]byte, error) {
 	var buf bytes.Buffer
 	if err := RenderDefault(&buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// RenderIndex 将带 authURL 的首页写入 w（参见 docs/auth.md）。
+func RenderIndex(w io.Writer, authURL string) error {
+	return Templates.ExecuteTemplate(w, "index.html", map[string]string{"AuthURL": authURL})
+}
+
+// RenderIndexBytes 返回首页 HTML 的字节形式。
+func RenderIndexBytes(authURL string) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := RenderIndex(&buf, authURL); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

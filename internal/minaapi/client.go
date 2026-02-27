@@ -1,5 +1,5 @@
-// Package minaapi implements MiNA API client for api2.mina.mi.com.
-// Ref: https://github.com/yihong0618/MiService/blob/main/miservice/minaservice.py
+// Package minaapi 实现 api2.mina.mi.com 的 MiNA API 客户端。
+// 参考: https://github.com/yihong0618/MiService/blob/main/miservice/minaservice.py
 package minaapi
 
 import (
@@ -20,8 +20,8 @@ const (
 	userAgent   = "MiHome/6.0.103 (com.xiaomi.mihome; build:6.0.103.1; iOS 14.4.0) Alamofire/6.0.103 MICO/iOSApp/appStore/6.0.103"
 )
 
-// Client calls MiNA API. Supports OAuth Bearer token (from m login).
-// Note: MiNA API may require micoapi cookie auth; OAuth is experimental.
+// Client 调用 MiNA API。支持 OAuth Bearer token（来自 m login）。
+// 注意: MiNA API 可能需要 micoapi cookie 认证；OAuth 为实验性支持。
 type Client struct {
 	HTTP        *http.Client
 	TokenStore  *miaccount.TokenStore
@@ -29,7 +29,7 @@ type Client struct {
 	AccessToken string
 }
 
-// New creates client with OAuth token.
+// New 使用 OAuth token 创建客户端。
 func New(t *miaccount.OAuthToken, tokenPath string) *Client {
 	store := &miaccount.TokenStore{Path: tokenPath}
 	token := t
@@ -48,6 +48,7 @@ func New(t *miaccount.OAuthToken, tokenPath string) *Client {
 	}
 }
 
+// ensureToken 确保 token 有效，过期时自动刷新。
 func (c *Client) ensureToken() error {
 	if c.OAuthToken == nil || c.OAuthToken.AccessToken == "" {
 		return fmt.Errorf("no OAuth token, run 'm login' first")
@@ -77,6 +78,7 @@ func (c *Client) ensureToken() error {
 	return nil
 }
 
+// truncate 截断字符串至指定长度，超出部分用 ... 替代。
 func truncate(s string, max int) string {
 	if len(s) <= max {
 		return s
@@ -84,6 +86,7 @@ func truncate(s string, max int) string {
 	return s[:max] + "..."
 }
 
+// randString 生成指定长度的随机字符串。
 func randString(n int) string {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, n)
@@ -93,7 +96,7 @@ func randString(n int) string {
 	return string(b)
 }
 
-// MinaRequest calls MiNA API. uri should start with /. Uses GET when data is nil.
+// MinaRequest 调用 MiNA API。uri 应以 / 开头。data 为 nil 时使用 GET。
 func (c *Client) MinaRequest(uri string, data map[string]interface{}) (map[string]interface{}, error) {
 	if err := c.ensureToken(); err != nil {
 		return nil, err
@@ -141,8 +144,8 @@ func (c *Client) MinaRequest(uri string, data map[string]interface{}) (map[strin
 		return nil, err
 	}
 
-	// API 可能返回 HTML 错误页（如 401/403），非 JSON
-	trimmed := bytes.TrimLeft(raw, " \t\r\n\xef\xbb\xbf") // 含 UTF-8 BOM
+	// API 可能返回 HTML 错误页（如 401/403），非 JSON 格式
+	trimmed := bytes.TrimLeft(raw, " \t\r\n\xef\xbb\xbf") // 去除 UTF-8 BOM
 	if len(trimmed) > 0 && trimmed[0] == '<' {
 		snippet := string(trimmed)
 		if len(snippet) > 200 {
@@ -166,7 +169,7 @@ func (c *Client) MinaRequest(uri string, data map[string]interface{}) (map[strin
 	return out, nil
 }
 
-// DeviceList returns mina devices. master=0 for all. Uses GET per MiService.
+// DeviceList 返回 mina 设备。master=0 表示全部。按 MiService 使用 GET。
 func (c *Client) DeviceList(master int) ([]map[string]interface{}, error) {
 	uri := fmt.Sprintf("/admin/v2/device_list?master=%d", master)
 	res, err := c.MinaRequest(uri, nil)
@@ -186,7 +189,7 @@ func (c *Client) DeviceList(master int) ([]map[string]interface{}, error) {
 	return out, nil
 }
 
-// UbusRequest sends ubus RPC to device.
+// UbusRequest 向设备发送 ubus RPC。
 func (c *Client) UbusRequest(deviceID, method, path string, message interface{}) (map[string]interface{}, error) {
 	msgJSON, err := json.Marshal(message)
 	if err != nil {
@@ -201,17 +204,17 @@ func (c *Client) UbusRequest(deviceID, method, path string, message interface{})
 	return c.MinaRequest("/remote/ubus", data)
 }
 
-// Hardware models that require play_by_music_url instead of player_play_url.
-// Ref: MiService minaservice._USE_PLAY_MUSIC_API
+// 需要使用 play_by_music_url 而非 player_play_url 的硬件型号。
+// 参考: MiService minaservice._USE_PLAY_MUSIC_API
 var usePlayMusicAPI = map[string]bool{
 	"LX04": true, "LX05": true, "L05B": true, "L05C": true, "L06": true,
 	"L06A": true, "X08A": true, "X10A": true, "X08C": true, "X08E": true,
 	"X8F": true, "X4B": true, "OH2": true, "OH2P": true, "X6A": true,
 }
 
-// PlayByURL plays audio from URL. Uses play_by_music_url for L06A etc., else player_play_url.
+// PlayByURL 从 URL 播放音频。L06A 等使用 play_by_music_url，其他使用 player_play_url。
 func (c *Client) PlayByURL(deviceID, url string, typ int) (map[string]interface{}, error) {
-	// Resolve hardware from device list to choose API
+	// 从设备列表解析硬件型号以选择 API
 	devices, err := c.DeviceList(0)
 	if err != nil {
 		return nil, err
@@ -220,7 +223,7 @@ func (c *Client) PlayByURL(deviceID, url string, typ int) (map[string]interface{
 	for _, d := range devices {
 		devID, _ := d["deviceID"].(string)
 		if devID == "" {
-			devID, _ = d["deviceId"].(string) // camelCase variant
+			devID, _ = d["deviceId"].(string) // camelCase 变体
 		}
 		if devID == deviceID {
 			hardware, _ = d["hardware"].(string)
@@ -238,7 +241,7 @@ func (c *Client) PlayByURL(deviceID, url string, typ int) (map[string]interface{
 	return c.UbusRequest(deviceID, "player_play_url", "mediaplayer", msg)
 }
 
-// PlayByMusicURL uses player_play_music for L06A/LX05 etc. Ref: MiService play_by_music_url.
+// PlayByMusicURL 对 L06A/LX05 等使用 player_play_music。参考: MiService play_by_music_url。
 func (c *Client) PlayByMusicURL(deviceID, url string, typ int) (map[string]interface{}, error) {
 	audioID := "1582971365183456177"
 	id := "355454500"

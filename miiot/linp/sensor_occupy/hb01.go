@@ -2,7 +2,7 @@ package sensor_occupy
 
 const Model = "linp.sensor_occupy.hb01"
 
-// Occupancy Sensor siid=2
+// occupancy 传感器 siid=2
 const (
 	SiidOccupancy = 2
 	PiidStatus    = 1 // Occupancy Status

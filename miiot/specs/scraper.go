@@ -37,6 +37,7 @@ func ScrapeProductPage(model string) (map[string]string, error) {
 // 匹配 HTML 中 model&quot;:&quot;xxx 与 type&quot;:&quot;urn:... 对（中间可有 status,version 等）
 var modelTypeRE = regexp.MustCompile(`model&quot;:&quot;([a-z0-9._-]+)&quot;.*?type&quot;:&quot;(urn:miot-spec[^&]+)`)
 
+// parseProductPageBody 解析产品页 HTML，提取 model->URN 映射。
 func parseProductPageBody(body []byte) (map[string]string, error) {
 	result := make(map[string]string)
 	bodyStr := string(body)

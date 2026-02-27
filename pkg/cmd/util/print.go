@@ -1,4 +1,4 @@
-// Package util provides shared utilities for cmd packages.
+// Package util 为 cmd 包提供共享工具。
 package util
 
 import (
@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// PrintResult prints the result to stdout.
+// PrintResult 将结果打印到 stdout。
 func PrintResult(v interface{}) {
 	switch t := v.(type) {
 	case string:

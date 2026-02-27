@@ -1,5 +1,5 @@
-// Package mp3server provides HTTP file server that maps local paths to accessible URLs.
-// Mapping: /Users/zeusro/Music/QQ音乐/Taylor Swift-Red.flac -> http://本机ip:端口/Users/zeusro/Music/QQ音乐/Taylor%20Swift-Red.flac
+// Package mp3server 提供将本地路径映射为可访问 URL 的 HTTP 文件服务。
+// 映射规则：/Users/zeusro/Music/QQ音乐/Taylor Swift-Red.flac -> http://本机ip:端口/Users/zeusro/Music/QQ音乐/Taylor%20Swift-Red.flac
 package mp3server
 
 import (
@@ -16,14 +16,14 @@ import (
 	"time"
 )
 
-// Config holds server configuration.
+// Config 保存服务器配置。
 type Config struct {
-	Addr       string // e.g. ":8090"
+	Addr       string // 例如 ":8090"
 	Host       string // 本机 IP，空则自动检测
 	LogRequest bool   // 打印每个 HTTP 请求
 }
 
-// Server runs an HTTP file server and provides path-to-URL mapping.
+// Server 运行 HTTP 文件服务并提供路径到 URL 的映射。
 type Server struct {
 	cfg   Config
 	ln    net.Listener
@@ -34,7 +34,7 @@ type Server struct {
 	ready chan struct{}
 }
 
-// New creates a new Server. root is the filesystem root for serving (use "/" for full path mapping).
+// New 创建新的 Server。root 为提供服务的文件系统根路径（使用 "/" 实现完整路径映射）。
 func New(cfg Config, root string) (*Server, error) {
 	if root == "" {
 		root = "/"
@@ -43,7 +43,7 @@ func New(cfg Config, root string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	// For full path mapping, we need root="/"
+	// 完整路径映射需要 root="/"
 	if root != "/" {
 		root = filepath.Clean(root)
 	}
@@ -91,7 +91,7 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-// Start starts the HTTP server. Call PathToURL to get the URL for a file.
+// Start 启动 HTTP 服务。调用 PathToURL 获取文件的 URL。
 func (s *Server) Start() error {
 	addr := s.cfg.Addr
 	if addr == "" {
@@ -124,7 +124,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// Close stops the server.
+// Close 停止服务器。
 func (s *Server) Close() error {
 	if s.ln != nil {
 		return s.ln.Close()
@@ -132,7 +132,7 @@ func (s *Server) Close() error {
 	return nil
 }
 
-// WaitReady blocks until the server is ready or timeout. 需先调用 Start()。
+// WaitReady 阻塞直到服务器就绪或超时。需先调用 Start()。
 func (s *Server) WaitReady(timeout time.Duration) bool {
 	select {
 	case <-s.ready:
@@ -167,9 +167,9 @@ func (s *Server) ResolveHostPort() {
 	}
 }
 
-// PathToURL converts a local file path to an accessible HTTP URL.
+// PathToURL 将本地文件路径转换为可访问的 HTTP URL。
 // 不依赖 Start()：若 host/port 未设置则从 Config 解析，支持 mp3 单独启动的场景。
-// Mapping: /Users/zeusro/Music/QQ音乐/Taylor Swift-Red.flac -> http://host:port/Users/zeusro/Music/QQ%E9%9F%B3%E4%B9%90/Taylor%20Swift-Red.flac
+// 映射示例：/Users/zeusro/Music/QQ音乐/Taylor Swift-Red.flac -> http://host:port/Users/zeusro/Music/QQ%E9%9F%B3%E4%B9%90/Taylor%20Swift-Red.flac
 func (s *Server) PathToURL(target string) (string, error) {
 	s.ResolveHostPort()
 	target, err := filepath.Abs(target)
@@ -181,7 +181,7 @@ func (s *Server) PathToURL(target string) (string, error) {
 	}
 	var rel string
 	if s.root == "/" || s.root == "" {
-		// Full path mapping: use path as-is (leading /)
+		// 完整路径映射：直接使用路径（带前导 /）
 		rel = target
 		if !strings.HasPrefix(rel, "/") {
 			rel = "/" + rel
@@ -193,7 +193,7 @@ func (s *Server) PathToURL(target string) (string, error) {
 		}
 		rel = "/" + strings.ReplaceAll(rel, string(filepath.Separator), "/")
 	}
-	// URL encode each path segment
+	// 对每个路径段进行 URL 编码
 	parts := strings.Split(strings.Trim(rel, "/"), "/")
 	for i, p := range parts {
 		parts[i] = url.PathEscape(p)
@@ -202,12 +202,13 @@ func (s *Server) PathToURL(target string) (string, error) {
 	return fmt.Sprintf("http://%s:%s%s", s.host, s.port, pathEnc), nil
 }
 
-// Host returns the host used in URLs.
+// Host 返回 URL 中使用的 host。
 func (s *Server) Host() string { return s.host }
 
-// Port returns the port.
+// Port 返回端口号。
 func (s *Server) Port() string { return s.port }
 
+// parsePort 从地址字符串解析端口号。
 func parsePort(addr string) string {
 	_, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -219,6 +220,7 @@ func parsePort(addr string) string {
 	return port
 }
 
+// killProcessOnPort 终止占用指定端口的进程（排除当前进程）。
 func killProcessOnPort(port string) {
 	cmd := exec.Command("lsof", "-i", ":"+port, "-t")
 	out, err := cmd.Output()
@@ -237,6 +239,7 @@ func killProcessOnPort(port string) {
 	}
 }
 
+// waitPortReady 阻塞直到端口可连接或超时。
 func waitPortReady(host, port string, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	addr := net.JoinHostPort(host, port)
@@ -251,6 +254,7 @@ func waitPortReady(host, port string, timeout time.Duration) bool {
 	return false
 }
 
+// getListenHost 根据监听地址或网卡获取用于 URL 的 host。
 func getListenHost(listenAddr string) string {
 	host, _, err := net.SplitHostPort(listenAddr)
 	if err != nil {
@@ -290,6 +294,7 @@ func getListenHost(listenAddr string) string {
 	return "127.0.0.1"
 }
 
+// getOutboundIP 通过 UDP 探测获取本机出站 IP（优先局域网）。
 func getOutboundIP() string {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {

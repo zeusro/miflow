@@ -10,7 +10,7 @@ import (
 	"github.com/zeusro/miflow/web"
 )
 
-// DevicesList handles GET /api/devices - list devices
+// DevicesList 处理 GET /api/devices - 列出设备
 func DevicesList(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
@@ -26,7 +26,7 @@ func DevicesList(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, list)
 }
 
-// DeviceGet handles GET /api/devices/:id - get device detail
+// DeviceGet 处理 GET /api/devices/:id - 获取设备详情
 func DeviceGet(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
@@ -44,7 +44,7 @@ func DeviceGet(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, d)
 }
 
-// DeviceControl handles POST /api/devices/:id/control - control device (miot command)
+// DeviceControl 处理 POST /api/devices/:id/control - 控制设备 (miot 命令)
 func DeviceControl(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
@@ -74,7 +74,7 @@ func DeviceControl(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// DeviceSpec handles GET /api/devices/:id/spec - get device MIoT spec (for control UI)
+// DeviceSpec 处理 GET /api/devices/:id/spec - 获取设备 MIoT 规格（用于控制 UI）
 func DeviceSpec(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return

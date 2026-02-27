@@ -11,8 +11,8 @@ import (
 	"github.com/zeusro/miflow/internal/config"
 )
 
-// HAClient is HTTP client for ha.api.io.mi.com (OAuth Bearer token).
-// Ref: https://github.com/XiaoMi/ha_xiaomi_home
+// HAClient 是 ha.api.io.mi.com 的 HTTP 客户端（OAuth Bearer token）。
+// 参考: https://github.com/XiaoMi/ha_xiaomi_home
 type HAClient struct {
 	Host        string
 	BaseURL     string
@@ -23,7 +23,7 @@ type HAClient struct {
 	OAuthToken  *OAuthToken
 }
 
-// NewHAClient creates client for given OAuth token.
+// NewHAClient 为给定 OAuth token 创建客户端。
 func NewHAClient(t *OAuthToken, tokenStore *TokenStore) *HAClient {
 	cfg := config.Get()
 	apiHost := cfg.OAuth.APIHost
@@ -56,7 +56,7 @@ func NewHAClient(t *OAuthToken, tokenStore *TokenStore) *HAClient {
 	}
 }
 
-// ensureToken refreshes if expired.
+// ensureToken 在 token 过期时刷新。
 func (c *HAClient) ensureToken() error {
 	if c.OAuthToken.IsValid() {
 		c.AccessToken = c.OAuthToken.AccessToken
@@ -83,7 +83,7 @@ func (c *HAClient) ensureToken() error {
 	return nil
 }
 
-// Post sends POST to path with JSON body, returns parsed result.
+// Post 向 path 发送 JSON 体的 POST 请求，返回解析后的结果。
 func (c *HAClient) Post(path string, data interface{}) (map[string]interface{}, error) {
 	if err := c.ensureToken(); err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (c *HAClient) Post(path string, data interface{}) (map[string]interface{}, 
 	}
 	logHttpResp(resp.StatusCode, raw)
 	if resp.StatusCode == 401 {
-		// token invalid, clear and retry once
+		// token 无效，清除并重试一次
 		c.OAuthToken.AccessToken = ""
 		c.OAuthToken.ExpiresTS = 0
 		if err := c.ensureToken(); err != nil {
@@ -136,6 +136,7 @@ func (c *HAClient) Post(path string, data interface{}) (map[string]interface{}, 
 	return out, nil
 }
 
+// setHeaders 设置请求头（Host、Authorization、X-Client-AppId 等）。
 func (c *HAClient) setHeaders(req *http.Request) {
 	req.Header.Set("Host", c.Host)
 	req.Header.Set("X-Client-BizId", "haapi")

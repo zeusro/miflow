@@ -1,4 +1,4 @@
-// Command m - XiaoMi Cloud Service CLI (OAuth 2.0, ref: ha_xiaomi_home).
+// Command m - 小米云服务命令行工具 (OAuth 2.0, 参考: ha_xiaomi_home)。
 package main
 
 import (

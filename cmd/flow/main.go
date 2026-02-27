@@ -19,11 +19,10 @@ import (
 	"github.com/zeusro/miflow/internal/minaservice"
 )
 
-// FlowStepType defines a single step kind inside a flow.
-// This keeps the initial implementation simple but expressive enough
-// for most "device work" control flows.
+// FlowStepType 定义流程中的单步类型。
+// 保持初始实现简单但足以表达大多数"设备工作"控制流。
 //
-// Currently supported types:
+// 当前支持的类型：
 //   - "tts"       : 小爱播报一段文字
 //   - "play_url"  : 播放一个音频 URL
 //   - "miio"      : 发送一条 miio/miot 文本命令（等价于 `m` 的参数）
@@ -39,7 +38,7 @@ const (
 	defaultPrefix = "flow "
 )
 
-// FlowStep describes one action in a flow.
+// FlowStep 描述流程中的一个动作。
 type FlowStep struct {
 	Type       FlowStepType `json:"type"`
 	Label      string       `json:"label,omitempty"`       // 简要说明，展示在 UI 上
@@ -50,7 +49,7 @@ type FlowStep struct {
 	DurationMS int          `json:"duration_ms,omitempty"` // 用于 delay
 }
 
-// Flow is a simple, linear flow made of steps.
+// Flow 是由步骤组成的简单线性流程。
 type Flow struct {
 	ID          string     `json:"id"`
 	Name        string     `json:"name"`
@@ -58,7 +57,7 @@ type Flow struct {
 	Steps       []FlowStep `json:"steps"`
 }
 
-// FlowStore keeps flows on disk as a single JSON file.
+// FlowStore 将流程以单个 JSON 文件形式保存在磁盘。
 type FlowStore struct {
 	mu      sync.RWMutex
 	path    string
@@ -71,6 +70,7 @@ func NewFlowStore(path string) *FlowStore {
 	return &FlowStore{path: path}
 }
 
+// load 从磁盘加载 flows.json，未加载过才执行。
 func (s *FlowStore) load() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -99,6 +99,7 @@ func (s *FlowStore) load() error {
 	return nil
 }
 
+// save 将 flows 持久化到磁盘。
 func (s *FlowStore) save() error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -117,6 +118,7 @@ func (s *FlowStore) save() error {
 	return nil
 }
 
+// list 返回所有流程列表。
 func (s *FlowStore) list() ([]Flow, error) {
 	if err := s.load(); err != nil {
 		return nil, err
@@ -129,6 +131,7 @@ func (s *FlowStore) list() ([]Flow, error) {
 	return out, nil
 }
 
+// upsert 创建或更新流程，ID 为空时自动生成。
 func (s *FlowStore) upsert(f Flow) (Flow, error) {
 	if f.ID == "" {
 		// 简单的 ID 生成：时间戳 + 名称
@@ -158,6 +161,7 @@ func (s *FlowStore) upsert(f Flow) (Flow, error) {
 	return f, nil
 }
 
+// get 按 ID 获取流程，未找到返回 false。
 func (s *FlowStore) get(id string) (Flow, bool, error) {
 	if err := s.load(); err != nil {
 		return Flow{}, false, err
@@ -173,6 +177,7 @@ func (s *FlowStore) get(id string) (Flow, bool, error) {
 	return Flow{}, false, nil
 }
 
+// delete 按 ID 删除流程。
 func (s *FlowStore) delete(id string) error {
 	if err := s.load(); err != nil {
 		return err
@@ -190,6 +195,7 @@ func (s *FlowStore) delete(id string) error {
 	return s.save()
 }
 
+// sanitizeID 将名称规范化为 ID 格式（小写、连字符）。
 func sanitizeID(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -202,7 +208,7 @@ func sanitizeID(s string) string {
 	return s
 }
 
-// app holds global state for the flow server.
+// app 持有 flow 服务器的全局状态。
 type app struct {
 	store      *FlowStore
 	mina       *minaservice.Service
@@ -262,7 +268,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(*addr, logRequest(mux)))
 }
 
-// logRequest wraps handler with basic logging.
+// logRequest 用基本日志包装 handler。
 func logRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -271,8 +277,9 @@ func logRequest(next http.Handler) http.Handler {
 	})
 }
 
-// --- HTTP Handlers ---
+// --- HTTP 处理器 ---
 
+// handleIndex 返回首页 HTML。
 func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -282,7 +289,7 @@ func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, indexHTML)
 }
 
-// /api/flows
+// handleFlows 处理 GET/POST /api/flows。
 func (a *app) handleFlows(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -314,7 +321,7 @@ func (a *app) handleFlows(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// /api/flows/{id} or /api/flows/{id}/run
+// handleFlowByID 处理 GET/DELETE /api/flows/{id} 或 POST /api/flows/{id}/run。
 func (a *app) handleFlowByID(w http.ResponseWriter, r *http.Request) {
 	trimmed := strings.TrimPrefix(r.URL.Path, "/api/flows/")
 	if trimmed == "" {
@@ -375,7 +382,7 @@ func (a *app) handleFlowByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// runFlow executes a flow sequentially.
+// runFlow 顺序执行流程中的各步骤。
 func (a *app) runFlow(f Flow) {
 	log.Printf("Running flow %s (%s) with %d steps\n", f.ID, f.Name, len(f.Steps))
 	for i, step := range f.Steps {
@@ -386,6 +393,7 @@ func (a *app) runFlow(f Flow) {
 	}
 }
 
+// resolveDID 解析步骤中的设备 ID，空则使用默认 DID。
 func (a *app) resolveDID(step FlowStep) string {
 	if strings.TrimSpace(step.Device) != "" {
 		return step.Device
@@ -393,6 +401,7 @@ func (a *app) resolveDID(step FlowStep) string {
 	return a.defaultDID
 }
 
+// runStep 执行单个步骤（delay/tts/play_url/miio）。
 func (a *app) runStep(step FlowStep) error {
 	switch step.Type {
 	case StepTypeDelay:
@@ -449,6 +458,7 @@ func (a *app) runStep(step FlowStep) error {
 	}
 }
 
+// writeJSON 将 v 序列化为 JSON 写入响应。
 func writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	enc := json.NewEncoder(w)
@@ -456,7 +466,7 @@ func writeJSON(w http.ResponseWriter, v interface{}) {
 	_ = enc.Encode(v)
 }
 
-// indexHTML is a tiny single-page "visual config" UI.
+// indexHTML 是极简的单页"可视化配置" UI。
 // 为了降低依赖，这里直接内嵌最简单的 HTML/JS，
 // 提供：
 //   - Flow 列表

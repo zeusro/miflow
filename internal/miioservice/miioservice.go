@@ -21,13 +21,13 @@ import (
 	"github.com/zeusro/miflow/internal/mihomeapi"
 )
 
-// Service implements MiIO/MIoT API via ha.api.io.mi.com (OAuth 2.0).
-// Ref: https://github.com/XiaoMi/ha_xiaomi_home
+// Service 通过 ha.api.io.mi.com 实现 MiIO/MIoT API（OAuth 2.0）。
+// 参考: https://github.com/XiaoMi/ha_xiaomi_home
 type Service struct {
 	ha *mihomeapi.Service
 }
 
-// New creates MiIO service with OAuth token. Token is loaded from tokenPath if empty.
+// New 使用 OAuth token 创建 MiIO 服务。token 为空时从 tokenPath 加载。
 func New(token *miaccount.OAuthToken, tokenPath string) (*Service, error) {
 	if token == nil {
 		store := &miaccount.TokenStore{Path: tokenPath}
@@ -43,7 +43,7 @@ func New(token *miaccount.OAuthToken, tokenPath string) (*Service, error) {
 	return &Service{ha: ha}, nil
 }
 
-// SignNonce computes key for request signing (used by MiotDecode).
+// SignNonce 计算请求签名密钥（供 MiotDecode 使用）。
 func SignNonce(ssecurity, nonce string) (string, error) {
 	sb, err := base64.StdEncoding.DecodeString(ssecurity)
 	if err != nil {
@@ -57,7 +57,7 @@ func SignNonce(ssecurity, nonce string) (string, error) {
 	return base64.StdEncoding.EncodeToString(h[:]), nil
 }
 
-// SignData builds _nonce, data, signature for MiIO request (legacy, kept for decode).
+// SignData 构建 MiIO 请求的 _nonce、data、signature（旧版，保留用于 decode）。
 func SignData(uri, dataStr, ssecurity string) (map[string]string, error) {
 	nonceBytes := make([]byte, 12)
 	rand.Read(nonceBytes[:8])
@@ -79,28 +79,28 @@ func SignData(uri, dataStr, ssecurity string) (map[string]string, error) {
 	}, nil
 }
 
-// MiIORequest: raw MiIO not supported in OAuth mode (ha.api.io.mi.com uses different API).
+// MiIORequest: OAuth 模式不支持原始 MiIO（ha.api.io.mi.com 使用不同 API）。
 func (s *Service) MiIORequest(uri string, data interface{}) (map[string]interface{}, error) {
 	return nil, fmt.Errorf("raw MiIO (%s) not supported in OAuth mode, use MIoT commands", uri)
 }
 
-// HomeRequest: legacy home/rpc not supported in OAuth mode.
+// HomeRequest: OAuth 模式不支持旧版 home/rpc。
 func (s *Service) HomeRequest(did, method string, params interface{}) (map[string]interface{}, error) {
 	return nil, fmt.Errorf("legacy home/rpc not supported in OAuth mode")
 }
 
-// HomeGetProps returns property values. In OAuth mode, uses MIoT get_prop.
+// HomeGetProps 返回属性值。OAuth 模式使用 MIoT get_prop。
 func (s *Service) HomeGetProps(did string, props []string) ([]interface{}, error) {
-	// Map legacy prop names to siid-piid would need device spec; return nil for now
+	// 将旧版 prop 名映射到 siid-piid 需要设备规格；暂返回 nil
 	return nil, fmt.Errorf("legacy get_prop not supported, use MIoT format (siid-piid)")
 }
 
-// HomeSetProp: legacy not supported.
+// HomeSetProp: 旧版不支持。
 func (s *Service) HomeSetProp(did, prop string, value interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("legacy set_prop not supported, use MIoT format")
 }
 
-// MiotRequest calls miotspec prop/get, prop/set, or action via HA API.
+// MiotRequest 通过 HA API 调用 miotspec prop/get、prop/set 或 action。
 func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]interface{}, error) {
 	switch cmd {
 	case "prop/get":
@@ -142,6 +142,7 @@ func (s *Service) MiotRequest(cmd string, params interface{}) ([]map[string]inte
 	}
 }
 
+// toParamsArray 将 interface 转为 []map[string]interface{}。
 func toParamsArray(p interface{}) ([]map[string]interface{}, bool) {
 	arr, ok := p.([]interface{})
 	if !ok {
@@ -158,6 +159,7 @@ func toParamsArray(p interface{}) ([]map[string]interface{}, bool) {
 	return out, true
 }
 
+// toInt 从 interface 提取 int（支持 float64/int）。
 func toInt(v interface{}) (int, bool) {
 	switch x := v.(type) {
 	case float64:
@@ -168,7 +170,7 @@ func toInt(v interface{}) (int, bool) {
 	return 0, false
 }
 
-// MiotGetProps gets MIoT properties.
+// MiotGetProps 获取 MIoT 属性。
 func (s *Service) MiotGetProps(did string, iids [][2]int) ([]interface{}, error) {
 	params := make([]map[string]interface{}, len(iids))
 	for i, iid := range iids {
@@ -189,7 +191,7 @@ func (s *Service) MiotGetProps(did string, iids [][2]int) ([]interface{}, error)
 	return out, nil
 }
 
-// MiotSetProps sets MIoT properties.
+// MiotSetProps 设置 MIoT 属性。
 func (s *Service) MiotSetProps(did string, props [][3]interface{}) ([]int, error) {
 	params := make([]map[string]interface{}, len(props))
 	for i, p := range props {
@@ -207,7 +209,7 @@ func (s *Service) MiotSetProps(did string, props [][3]interface{}) ([]int, error
 	return out, nil
 }
 
-// MiotAction runs a MIoT action.
+// MiotAction 执行 MIoT 动作。
 func (s *Service) MiotAction(did string, siid, aiid int, args []interface{}) (int, error) {
 	_, err := s.ha.Action(did, siid, aiid, args)
 	if err != nil {
@@ -216,12 +218,12 @@ func (s *Service) MiotAction(did string, siid, aiid int, args []interface{}) (in
 	return 0, nil
 }
 
-// DeviceList returns devices.
+// DeviceList 返回设备列表。
 func (s *Service) DeviceList(name string, getVirtualModel bool, getHuamiDevices int) ([]map[string]interface{}, error) {
 	return s.ha.DeviceList(name, getVirtualModel, getHuamiDevices)
 }
 
-// MiotSpec fetches MIoT spec from miot-spec.org (public, no auth).
+// MiotSpec 从 miot-spec.org 获取 MIoT 规格（公开，无需认证）。
 func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 	specsPath := config.Get().MiIO.SpecsCachePath
 	if specsPath == "" {
@@ -299,11 +301,13 @@ func (s *Service) MiotSpec(typ, format string) (interface{}, error) {
 	return formatMiotSpecText(result, format, reqURL), nil
 }
 
+// mustJSON 将 v 序列化为 JSON 字节。
 func mustJSON(v interface{}) []byte {
 	b, _ := json.Marshal(v)
 	return b
 }
 
+// formatMiotSpecText 将 MIoT 规格格式化为 text 或 python 格式。
 func formatMiotSpecText(result map[string]interface{}, format, reqURL string) string {
 	var buf bytes.Buffer
 	buf.WriteString("# Generated by github.com/zeusro/miflow\n# ")
@@ -344,6 +348,7 @@ func formatMiotSpecText(result map[string]interface{}, format, reqURL string) st
 	return buf.String()
 }
 
+// toSlice 将 interface 转为 []interface{}。
 func toSlice(v interface{}) []interface{} {
 	if v == nil {
 		return nil
@@ -354,6 +359,7 @@ func toSlice(v interface{}) []interface{} {
 	return nil
 }
 
+// parseDesc 解析描述字符串，提取名称和注释部分。
 func parseDesc(desc string) (name, comment string) {
 	for i, r := range desc {
 		if r == '-' || r == '—' || r == '{' || r == '「' || r == '[' || r == '【' || r == '(' || r == '（' || r == '<' || r == '《' {
@@ -368,7 +374,7 @@ func parseDesc(desc string) (name, comment string) {
 	return name, ""
 }
 
-// MiotDecode decrypts MIoT payload with ssecurity and nonce. If gzip is true, decompress after decrypt.
+// MiotDecode 使用 ssecurity 和 nonce 解密 MIoT 载荷。gzip 为 true 时解密后解压。
 func MiotDecode(ssecurity, nonce, data string, gzip bool) (map[string]interface{}, error) {
 	key, err := SignNonce(ssecurity, nonce)
 	if err != nil {
@@ -382,7 +388,7 @@ func MiotDecode(ssecurity, nonce, data string, gzip bool) (map[string]interface{
 	if err != nil {
 		return nil, err
 	}
-	// Discard first 1024 bytes of keystream (MiIO)
+	// 丢弃密钥流前 1024 字节（MiIO）
 	discard := make([]byte, 1024)
 	cipher.XORKeyStream(discard, discard)
 	enc, err := base64.StdEncoding.DecodeString(data)

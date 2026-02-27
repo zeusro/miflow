@@ -47,10 +47,12 @@ func main() {
 	}
 }
 
+// productURL 返回型号在 home.miot-spec.com 的产品页 URL。
 func productURL(model string) string {
 	return specs.ProductBaseURL + "/" + model
 }
 
+// getModels 从 m list 输出解析唯一型号列表。
 func getModels() ([]string, error) {
 	mBin := "m"
 	if _, err := os.Stat("./m"); err == nil {

@@ -1,9 +1,10 @@
-// Package web - App holds shared state for the web server.
+// Package web - App 持有网页服务器的共享状态。
 package web
 
 import (
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/zeusro/miflow/internal/config"
@@ -15,37 +16,82 @@ import (
 	"github.com/zeusro/miflow/internal/web/workflow"
 )
 
+const oauthPendingTTL = 10 * time.Minute
+
+type oauthEntry struct {
+	oc        *miaccount.OAuthClient
+	createdAt time.Time
+}
+
+// OAuthStore 按 state 保存待回调的 OAuth 客户端。
+type OAuthStore struct {
+	mu    sync.Mutex
+	items map[string]*oauthEntry
+}
+
+func (s *OAuthStore) Put(state string, oc *miaccount.OAuthClient) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.items == nil {
+		s.items = make(map[string]*oauthEntry)
+	}
+	for k, e := range s.items {
+		if time.Since(e.createdAt) > oauthPendingTTL {
+			delete(s.items, k)
+		}
+	}
+	s.items[state] = &oauthEntry{oc: oc, createdAt: time.Now()}
+}
+
+func (s *OAuthStore) Pop(state string) *miaccount.OAuthClient {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if e, ok := s.items[state]; ok {
+		delete(s.items, state)
+		return e.oc
+	}
+	return nil
+}
+
 var (
 	errNoToken  = errors.New("no valid token, run login first")
 	errNoDevice = errors.New("no device ID configured")
 )
 
-// App holds shared state for the web server.
+// App 持有网页服务器的共享状态。
 type App struct {
 	workflowStore *workflow.Store
 	deviceAPI     *device.API
 	miio          *miioservice.Service
 	mina          *minaservice.Service
 	defaultDID    string
+	oauthStore    *OAuthStore
+	tokenPath     string
 }
 
-// DeviceAPI returns the device API (nil if not logged in).
+// OAuthStore 返回用于登录/回调流程的 OAuth 存储。
+func (a *App) OAuthStore() *OAuthStore { return a.oauthStore }
+
+// TokenPath 返回存储 OAuth token 的路径。
+func (a *App) TokenPath() string { return a.tokenPath }
+
+// DeviceAPI 返回设备 API（未登录时为 nil）。
 func (a *App) DeviceAPI() *device.API { return a.deviceAPI }
 
-// WorkflowStore returns the workflow store.
+// WorkflowStore 返回工作流存储。
 func (a *App) WorkflowStore() *workflow.Store { return a.workflowStore }
 
-// Miio returns the miio service (nil if not logged in).
+// Miio 返回 miio 服务（未登录时为 nil）。
 func (a *App) Miio() *miioservice.Service { return a.miio }
 
-// RunWorkflow executes a workflow asynchronously.
+// RunWorkflow 异步执行工作流。
 func (a *App) RunWorkflow(w *workflow.Workflow) {
 	for _, step := range w.Steps {
 		_ = a.runStep(step)
 	}
 }
 
-// NewApp creates a new App instance.
+// NewApp 创建新的 App 实例。
 func NewApp() (*App, error) {
 	cfg := config.Get()
 	dataDir := cfg.Web.DataDir
@@ -80,9 +126,12 @@ func NewApp() (*App, error) {
 		miio:          miio,
 		mina:          mina,
 		defaultDID:    cfg.DefaultDID,
+		oauthStore:    &OAuthStore{},
+		tokenPath:     tokenPath,
 	}, nil
 }
 
+// resolveDID 解析步骤中的设备 ID，空则使用默认 DID。
 func (a *App) resolveDID(step workflow.Step) string {
 	if strings.TrimSpace(step.Device) != "" {
 		return step.Device
@@ -90,6 +139,7 @@ func (a *App) resolveDID(step workflow.Step) string {
 	return a.defaultDID
 }
 
+// runStep 执行单个工作流步骤（delay/tts/play_url/miio）。
 func (a *App) runStep(step workflow.Step) error {
 	switch step.Type {
 	case workflow.StepTypeDelay:

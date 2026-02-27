@@ -44,6 +44,7 @@ func ResolveSpec(model string) (Spec, error) {
 	return s, nil
 }
 
+// parseInstanceToSpec 将 miot-spec.org 的 instance JSON 解析为 Spec。
 func parseInstanceToSpec(m map[string]interface{}) (Spec, error) {
 	s := Spec{}
 	svcs, _ := m["services"].([]interface{})
@@ -196,6 +197,7 @@ func parseInstanceToSpec(m map[string]interface{}) (Spec, error) {
 	return s, nil
 }
 
+// getStr 从 map 安全获取字符串。
 func getStr(m map[string]interface{}, k string) string {
 	if v, ok := m[k].(string); ok {
 		return v
@@ -203,6 +205,7 @@ func getStr(m map[string]interface{}, k string) string {
 	return ""
 }
 
+// getFloat 从 map 安全获取 float64。
 func getFloat(m map[string]interface{}, k string) float64 {
 	switch v := m[k].(type) {
 	case float64:
@@ -213,6 +216,7 @@ func getFloat(m map[string]interface{}, k string) float64 {
 	return 0
 }
 
+// toSlice 将 interface 转为 []interface{}。
 func toSlice(v interface{}) []interface{} {
 	if v == nil {
 		return nil

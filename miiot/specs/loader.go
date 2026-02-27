@@ -32,6 +32,7 @@ func Load() (map[string]string, error) {
 	return modelToURN, loadErr
 }
 
+// loadInstances 从 miot-spec.org 加载 model->URN 映射。
 func loadInstances() (map[string]string, error) {
 	cachePath := config.Get().MiIO.SpecsCachePath
 	if cachePath == "" {

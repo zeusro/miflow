@@ -1,5 +1,5 @@
-// Package config provides configuration loading from YAML file with env override and defaults.
-// Ref: https://github.com/zeusro/go-template
+// Package config 提供从 YAML 文件加载配置，支持环境变量覆盖和默认值。
+// 参考: https://github.com/zeusro/go-template
 package config
 
 import (
@@ -15,19 +15,20 @@ var (
 	loadOnce sync.Once
 )
 
-// Get returns cached config, loading from file on first call.
+// Get 返回缓存的配置，首次调用时从文件加载。
 func Get() *Config {
 	loadOnce.Do(func() { cached = Load() })
 	return cached
 }
 
-// Default config paths (first existing wins).
+// 默认配置路径（第一个存在的生效）。
 var configPaths = []string{
 	".config.yaml",
 	"config.yaml",
 	".miflow.yaml",
 }
 
+// init 将用户主目录下的配置路径加入默认路径列表。
 func init() {
 	if home, err := os.UserHomeDir(); err == nil {
 		configPaths = append(configPaths,
@@ -37,7 +38,7 @@ func init() {
 	}
 }
 
-// Config holds all miflow configuration.
+// Config 保存 miflow 的全部配置。
 type Config struct {
 	Debug bool `yaml:"debug"`
 
@@ -66,50 +67,50 @@ type Config struct {
 	MiIO MiIOConfig `yaml:"miio"`
 }
 
-// OAuthConfig for Xiaomi OAuth 2.0.
+// OAuthConfig 小米 OAuth 2.0 配置。
 type OAuthConfig struct {
 	ClientID    string `yaml:"client_id"`
 	RedirectURI string `yaml:"redirect_uri"`
-	CloudServer string `yaml:"cloud_server"` // cn, de, i2, ru, sg, us
+	CloudServer string `yaml:"cloud_server"` // 云服务器：cn, de, i2, ru, sg, us
 	DeviceID    string `yaml:"device_id"`    // 可选，用于 OAuth device_id
 	APIHost     string `yaml:"api_host"`
-	TokenPath   string `yaml:"token_path"` // API path
+	TokenPath   string `yaml:"token_path"` // API 路径
 	AuthURL     string `yaml:"auth_url"`
 	// TokenExpireRatio 过期前多少比例时刷新，0-1
 	TokenExpireRatio float64 `yaml:"token_expire_ratio"`
 }
 
-// HTTPConfig for HTTP client timeouts etc.
+// HTTPConfig HTTP 客户端超时等配置。
 type HTTPConfig struct {
 	TimeoutSeconds int `yaml:"timeout_seconds"`
 }
 
-// FlowConfig for flow server.
+// FlowConfig flow 服务器配置。
 type FlowConfig struct {
 	Addr    string `yaml:"addr"`
 	DataDir string `yaml:"data_dir"`
 }
 
-// WebConfig for web server (OAuth login UI + device management).
+// WebConfig 网页服务器配置（OAuth 登录 UI + 设备管理）。
 type WebConfig struct {
 	Addr    string `yaml:"addr"`     // 默认 :8123，与 oauth.redirect_uri 一致
 	DataDir string `yaml:"data_dir"` // SQLite 等数据目录，默认 ./webdata
 }
 
-// Mp3Config for mp3 HTTP file server.
+// Mp3Config mp3 HTTP 文件服务配置。
 type Mp3Config struct {
 	Addr string `yaml:"addr"`
 	Host string `yaml:"host"` // 本机 IP，供局域网访问，空则自动检测
 }
 
-// MiIOConfig for MiIO service.
+// MiIOConfig MiIO 服务配置。
 type MiIOConfig struct {
 	SpecsCachePath string `yaml:"specs_cache_path"`
 	CallbackPort   int    `yaml:"callback_port"` // OAuth 回调端口
 }
 
-// Load reads config from file. If file not found, returns config with defaults.
-// Env vars override: MI_OAUTH_CLIENT_ID, MI_OAUTH_REDIRECT_URI, MI_CLOUD_SERVER, MI_DID, MI_DEBUG, etc.
+// Load 从文件读取配置。若文件不存在，返回带默认值的配置。
+// 环境变量可覆盖：MI_OAUTH_CLIENT_ID, MI_OAUTH_REDIRECT_URI, MI_CLOUD_SERVER, MI_DID, MI_DEBUG 等。
 func Load() *Config {
 	cfg := defaultConfig()
 	for _, p := range configPaths {
@@ -129,6 +130,7 @@ func Load() *Config {
 	return cfg
 }
 
+// defaultConfig 返回带默认值的配置。
 func defaultConfig() *Config {
 	tokenPath := ".mi.token"
 	if home, err := os.UserHomeDir(); err == nil {
@@ -167,6 +169,7 @@ func defaultConfig() *Config {
 	}
 }
 
+// mergeConfig 将 src 的非零值合并到 dst。
 func mergeConfig(dst, src *Config) {
 	if src.Debug {
 		dst.Debug = true
@@ -185,6 +188,7 @@ func mergeConfig(dst, src *Config) {
 	mergeMiIO(&dst.MiIO, &src.MiIO)
 }
 
+// mergeOAuth 合并 OAuth 配置。
 func mergeOAuth(dst, src *OAuthConfig) {
 	if src.ClientID != "" {
 		dst.ClientID = src.ClientID
@@ -212,12 +216,14 @@ func mergeOAuth(dst, src *OAuthConfig) {
 	}
 }
 
+// mergeHTTP 合并 HTTP 配置。
 func mergeHTTP(dst, src *HTTPConfig) {
 	if src.TimeoutSeconds > 0 {
 		dst.TimeoutSeconds = src.TimeoutSeconds
 	}
 }
 
+// mergeFlow 合并 Flow 配置。
 func mergeFlow(dst, src *FlowConfig) {
 	if src.Addr != "" {
 		dst.Addr = src.Addr
@@ -227,6 +233,7 @@ func mergeFlow(dst, src *FlowConfig) {
 	}
 }
 
+// mergeWeb 合并 Web 配置。
 func mergeWeb(dst, src *WebConfig) {
 	if src.Addr != "" {
 		dst.Addr = src.Addr
@@ -236,6 +243,7 @@ func mergeWeb(dst, src *WebConfig) {
 	}
 }
 
+// mergeMp3 合并 Mp3 配置。
 func mergeMp3(dst, src *Mp3Config) {
 	if src.Addr != "" {
 		dst.Addr = src.Addr
@@ -245,6 +253,7 @@ func mergeMp3(dst, src *Mp3Config) {
 	}
 }
 
+// mergeMiIO 合并 MiIO 配置。
 func mergeMiIO(dst, src *MiIOConfig) {
 	if src.SpecsCachePath != "" {
 		dst.SpecsCachePath = src.SpecsCachePath
@@ -254,7 +263,7 @@ func mergeMiIO(dst, src *MiIOConfig) {
 	}
 }
 
-// expandPath expands ~ to user home directory.
+// expandPath 将 ~ 展开为用户主目录。
 func expandPath(p string) string {
 	if p == "" || p[0] != '~' {
 		return p
@@ -269,6 +278,7 @@ func expandPath(p string) string {
 	return filepath.Join(home, p[1:])
 }
 
+// applyEnvOverrides 用环境变量覆盖配置项。
 func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("MI_OAUTH_CLIENT_ID"); v != "" {
 		cfg.OAuth.ClientID = v

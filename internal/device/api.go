@@ -89,6 +89,7 @@ func (a *API) ResolveDID(didOrName string) (string, error) {
 	return d.DID, nil
 }
 
+// isDigits 判断字符串是否全为数字。
 func isDigits(s string) bool {
 	for _, r := range s {
 		if r < '0' || r > '9' {

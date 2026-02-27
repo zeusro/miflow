@@ -16,6 +16,7 @@ import (
 	"github.com/zeusro/miflow/internal/mp3server"
 )
 
+// usage 打印命令行用法。
 func usage() {
 	fmt.Fprintf(os.Stderr, "mp3 - 将本地音乐文件映射为 HTTP 可访问链接\n\n")
 	fmt.Fprintf(os.Stderr, "用法：\n")

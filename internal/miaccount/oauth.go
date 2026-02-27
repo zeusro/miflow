@@ -19,7 +19,7 @@ import (
 	"github.com/zeusro/miflow/internal/config"
 )
 
-// OAuth2 constants (defaults, overridden by config)
+// OAuth2 常量（默认值，可由配置覆盖）
 const (
 	OAuth2ClientID   = "2882303761520251711"
 	OAuth2AuthURL    = "https://account.xiaomi.com/oauth2/authorize"
@@ -29,7 +29,7 @@ const (
 	TokenExpireRatio = 0.7
 )
 
-// OAuthToken holds OAuth 2.0 auth data (replaces password-based token).
+// OAuthToken 保存 OAuth 2.0 认证数据（替代基于密码的 token）。
 type OAuthToken struct {
 	AccessToken   string `json:"access_token"`
 	RefreshToken  string `json:"refresh_token"`
@@ -42,7 +42,7 @@ type OAuthToken struct {
 	OAuthRedirect string `json:"oauth_redirect,omitempty"`
 }
 
-// IsValid returns true if access token exists and is not expired.
+// IsValid 当 access token 存在且未过期时返回 true。
 func (t *OAuthToken) IsValid() bool {
 	if t == nil || t.AccessToken == "" {
 		return false
@@ -53,7 +53,7 @@ func (t *OAuthToken) IsValid() bool {
 	return true
 }
 
-// OAuthClient handles OAuth 2.0 flow for Xiaomi MIoT (白名单域名模式).
+// OAuthClient 处理小米 MIoT 的 OAuth 2.0 流程（白名单域名模式）。
 type OAuthClient struct {
 	ClientID    string
 	RedirectURI string
@@ -63,7 +63,7 @@ type OAuthClient struct {
 	HTTP        *http.Client
 }
 
-// NewOAuthClient creates client from config (file + env override), falls back to defaults.
+// NewOAuthClient 从配置（文件 + 环境变量覆盖）创建客户端，无配置时使用默认值。
 func NewOAuthClient() *OAuthClient {
 	cfg := config.Get()
 	clientID := cfg.OAuth.ClientID
@@ -98,7 +98,7 @@ func NewOAuthClient() *OAuthClient {
 	}
 }
 
-// GenAuthURL returns the URL for user to authorize.
+// GenAuthURL 返回用户授权用的 URL。
 func (c *OAuthClient) GenAuthURL(redirectURI, state string, skipConfirm bool) string {
 	if redirectURI == "" {
 		redirectURI = c.RedirectURI
@@ -124,7 +124,7 @@ func (c *OAuthClient) GenAuthURL(redirectURI, state string, skipConfirm bool) st
 	return authURL + "?" + params.Encode()
 }
 
-// GetToken exchanges authorization code for access/refresh tokens.
+// GetToken 用授权码换取 access/refresh token。
 func (c *OAuthClient) GetToken(code string) (*OAuthToken, error) {
 	data := map[string]string{
 		"client_id":    c.ClientID,
@@ -135,7 +135,7 @@ func (c *OAuthClient) GetToken(code string) (*OAuthToken, error) {
 	return c.getToken(data)
 }
 
-// RefreshToken refreshes access token using refresh_token.
+// RefreshToken 使用 refresh_token 刷新 access token。
 func (c *OAuthClient) RefreshToken(refreshToken string) (*OAuthToken, error) {
 	data := map[string]string{
 		"client_id":     c.ClientID,
@@ -145,6 +145,7 @@ func (c *OAuthClient) RefreshToken(refreshToken string) (*OAuthToken, error) {
 	return c.getToken(data)
 }
 
+// getToken 向 OAuth API 发送请求并解析返回的 token。
 func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	cfg := config.Get()
 	apiHost := cfg.OAuth.APIHost
@@ -221,8 +222,8 @@ func (c *OAuthClient) getToken(data map[string]string) (*OAuthToken, error) {
 	}, nil
 }
 
-// ServeCallback starts HTTP server to receive OAuth callback and returns the auth code.
-// If the port is already in use, prompts the user to manually paste the code from the redirect URL.
+// ServeCallback 启动 HTTP 服务接收 OAuth 回调并返回授权码。
+// 若端口已被占用，则提示用户手动粘贴重定向 URL 中的 code。
 func ServeCallback(port int) (string, error) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -286,7 +287,7 @@ func ServeCallback(port int) (string, error) {
 	}
 }
 
-// OpenAuthURL opens the auth URL in the default browser.
+// OpenAuthURL 在默认浏览器中打开授权 URL。
 func OpenAuthURL(u string) error {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {

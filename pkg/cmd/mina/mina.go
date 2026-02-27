@@ -1,4 +1,4 @@
-// Package mina implements m mina-related subcommands (mina, message, play, pause, stop, loop, play_list, suno, suno_random).
+// Package mina 实现 m 的 mina 相关子命令（mina, message, play, pause, stop, loop, play_list, suno, suno_random）。
 package mina
 
 import (
@@ -10,7 +10,7 @@ import (
 	"github.com/zeusro/miflow/pkg/cmd/util"
 )
 
-// Mina runs mina subcommands.
+// Mina 运行 mina 子命令。
 type Mina struct {
 	MinaSvc *minaservice.Service
 	DID     string
@@ -18,7 +18,7 @@ type Mina struct {
 	Args    []string
 }
 
-// Run executes the mina subcommand.
+// Run 执行 mina 子命令。
 func (m Mina) Run() {
 	if m.Cmd != "mina" && m.DID == "" {
 		fmt.Fprintln(os.Stderr, "Error: MI_DID must be set for mina commands (message, play, pause, etc.)")
@@ -100,6 +100,7 @@ func (m Mina) Run() {
 	}
 }
 
+// runPlayList 按文件中的 URL 列表顺序播放（每行一个，# 为注释）。
 func runPlayList(mina *minaservice.Service, deviceID, filename string) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -122,6 +123,7 @@ func runPlayList(mina *minaservice.Service, deviceID, filename string) {
 	}
 }
 
+// runSuno 播放 Suno trending 列表（需网络，random 为随机模式）。
 func runSuno(mina *minaservice.Service, deviceID string, random bool) {
 	fmt.Fprintln(os.Stderr, "suno/suno_random: play suno.ai trending (optional, requires network)")
 	fmt.Println("Will play suno trending list")

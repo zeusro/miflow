@@ -10,7 +10,7 @@ import (
 	"github.com/zeusro/miflow/web"
 )
 
-// WorkflowsList handles GET /api/workflows - list workflows
+// WorkflowsList 处理 GET /api/workflows - 列出工作流
 func WorkflowsList(a *web.App, r *ghttp.Request) {
 	list, err := a.WorkflowStore().List()
 	if err != nil {
@@ -20,7 +20,7 @@ func WorkflowsList(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, list)
 }
 
-// WorkflowGet handles GET /api/workflows/:id - get workflow
+// WorkflowGet 处理 GET /api/workflows/:id - 获取工作流
 func WorkflowGet(a *web.App, r *ghttp.Request) {
 	id := r.GetRouter("id").String()
 	if id == "" {
@@ -39,7 +39,7 @@ func WorkflowGet(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, w)
 }
 
-// WorkflowCreate handles POST /api/workflows - create workflow
+// WorkflowCreate 处理 POST /api/workflows - 创建工作流
 func WorkflowCreate(a *web.App, r *ghttp.Request) {
 	var w workflow.Workflow
 	if err := json.NewDecoder(r.Request.Body).Decode(&w); err != nil {
@@ -57,7 +57,7 @@ func WorkflowCreate(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, w)
 }
 
-// WorkflowUpdate handles PUT /api/workflows/:id - update workflow
+// WorkflowUpdate 处理 PUT /api/workflows/:id - 更新工作流
 func WorkflowUpdate(a *web.App, r *ghttp.Request) {
 	id := r.GetRouter("id").String()
 	if id == "" {
@@ -77,7 +77,7 @@ func WorkflowUpdate(a *web.App, r *ghttp.Request) {
 	JSON(r, http.StatusOK, w)
 }
 
-// WorkflowDelete handles DELETE /api/workflows/:id - delete workflow
+// WorkflowDelete 处理 DELETE /api/workflows/:id - 删除工作流
 func WorkflowDelete(a *web.App, r *ghttp.Request) {
 	id := r.GetRouter("id").String()
 	if id == "" {
@@ -91,7 +91,7 @@ func WorkflowDelete(a *web.App, r *ghttp.Request) {
 	r.Response.WriteStatus(http.StatusNoContent)
 }
 
-// WorkflowRun handles POST /api/workflows/:id/run - run workflow
+// WorkflowRun 处理 POST /api/workflows/:id/run - 运行工作流
 func WorkflowRun(a *web.App, r *ghttp.Request) {
 	if !RequireAuth(a, r) {
 		return
