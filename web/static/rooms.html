@@ -31,7 +31,7 @@
   <nav class="sticky top-0 z-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-14">
-        <a href="/" class="text-slate-800 dark:text-slate-100 font-semibold tracking-tight">miflow</a>
+        <a href="/" class="text-slate-800 dark:text-slate-100 font-semibold tracking-tight">miflow-智能家居控制</a>
         <div class="flex items-center gap-4">
           <button id="theme-toggle" type="button" class="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200" aria-label="切换主题">
             <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -46,7 +46,6 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">智能家居控制</h1>
       <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm">按房间查看并控制您的智能设备</p>
     </div>
 
@@ -502,7 +501,7 @@
           roomDiv.innerHTML = `
             <div class="mb-4 flex flex-wrap items-end gap-x-3 gap-y-1">
               <h3 class="text-sm font-medium text-slate-600 dark:text-slate-400 shrink-0 leading-none">${escapeHtml(room.room_name || '未命名房间')}</h3>
-              <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0 leading-none">${devices.length} 个设备</span>
+              <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0 leading-none ml-1">${devices.length} 个设备</span>
             </div>
             <div class="room-devices"></div>
           `;

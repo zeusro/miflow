@@ -8,6 +8,8 @@
 
 `make b` 构建之后，配置域名解析，将 `homeassistant.local` [解析到本机](docs/host.md)，启动`miflow-web`进程。
 
+![image](docs/rooms_screenshot.png)
+
 访问 [http://homeassistant.local:8123/](http://homeassistant.local:8123/)，使用小米账号登录后，Token 会保存在 `~/.mi.token`。
 
 ## 命令行用法
