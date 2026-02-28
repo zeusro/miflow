@@ -71,4 +71,4 @@ Home Assistant's ecosystem is too complex, and I don't like the virtual image de
 
 I have used both Mi Home's "manual control" and "automation" scenarios extensively, but they don't quite match my expectations—some prompt phrases often fail. I want to build new workflows based on existing sensors by myself.
 
-![image](docs/no-idiot.jpg)
+<img src="docs/no-idiot.jpg" width="50%" height="auto">
