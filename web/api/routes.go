@@ -17,9 +17,13 @@ func RegisterRoutes(s *ghttp.Server, a *web.App) {
 
 	s.Group("/", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) {
-			lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
-			data, err := web.RenderIndexBytes(lang)
+			if a.DeviceAPI() != nil {
+				r.Response.RedirectTo("/rooms")
+				return
+			}
+			data, err := fs.ReadFile(staticRoot, "login.html")
 			if err != nil {
+				lang := i18n.AcceptLanguage(r.Header.Get("Accept-Language"))
 				data, _ = web.RenderDefaultBytes(lang)
 			}
 			if len(data) > 0 {

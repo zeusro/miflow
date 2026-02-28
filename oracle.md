@@ -10,13 +10,13 @@
 
 ## 前端开发
 
-html 部分放置在web目录中，使用 tailwindcss 作为前端框架。
+html 部分放置在web目录中，使用 tailwindcss 作为前端框架，需使用响应式设计，适配移动端和PCweb端。
 
 ## 后端开发
 
 使用 go.mod 对应的版本的语言开发，不要使用过时的API。
 
-web使用GoFrame作为主要开发框架。
+web使用GoFrame作为主要开发框架。前端路由在`web/api/routes.go`中。
 
 
 ## 测试
