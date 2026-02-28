@@ -12,12 +12,7 @@
 
 ## 命令行用法
 
-配置优先级：**环境变量 > 配置文件 > 默认值**。
-
-```bash
-export MI_DID=<设备ID或名称>   # 部分命令需要，也可在配置 default_did
-export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用），或配置 debug: true
-```
+使用命令需要先登录获取米家账户token。
 
 - **设备列表**  
   `m list`  
@@ -42,7 +37,7 @@ export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用�
 - **帮助**  
   `m help` 或 `m ?`
 
-## 与 ha_xiaomi_home 的对应关系
+### 与 ha_xiaomi_home 的对应关系
 
 | 功能     | ha_xiaomi_home     | miflow         |
 |----------|--------------------|-----------------|
@@ -52,3 +47,13 @@ export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用�
 | 属性读写 | miotspec/prop      | m siid,piid=val |
 | 动作执行 | miotspec/action    | m siid-aiid args |
 | 小爱播报 | Execute Text Directive | m message    |
+
+### 环境变量
+
+
+配置优先级：**环境变量 > 配置文件 > 默认值**。
+
+```bash
+export MI_DID=<设备ID或名称>   # 部分命令需要，也可在配置 default_did
+export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用），或配置 debug: true
+```
