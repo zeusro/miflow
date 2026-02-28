@@ -4,7 +4,7 @@
 
 ![miflow 系统架构](docs/architecture/index.png)
 
-## 使用方式
+## 启动web进程
 
 `make b` 构建之后，配置域名解析，将 `homeassistant.local` [解析到本机](docs/host.md)，启动`miflow-web`进程。
 
