@@ -65,12 +65,12 @@ Home Assistant 的体系太庞杂，用虚拟镜像部署的方式我也不喜�
 
 Home Assistant's ecosystem is too complex, and I don't like the virtual image deployment approach either. So I plan to borrow HA's domain and auth client first, as well as the [ha_xiaomi_home](https://github.com/XiaoMi/ha_xiaomi_home) open APIs, and implement the Mi Home workflow myself.
 
+<p align="center">
+  <img src="docs/no-idiot.jpg" width="50%" height="auto">
+</p>
+
 ## 为什么不用米家的智能模式？
 
 米家的“手动控制”和“自动化”场景我都有深度使用，但跟我期望有一点出入，小部分提示词经常出错。我想基于已有的传感器，自行构建新的工作流。
 
 I have used both Mi Home's "manual control" and "automation" scenarios extensively, but they don't quite match my expectations—some prompt phrases often fail. I want to build new workflows based on existing sensors by myself.
-
-<p align="center">
-  <img src="docs/no-idiot.jpg" width="50%" height="auto">
-</p>
