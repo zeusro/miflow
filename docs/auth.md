@@ -74,7 +74,7 @@ const (
     OAuth2APIHost    = "ha.api.io.mi.com"
     OAuth2TokenPath  = "/app/v2/ha/oauth/get_token"
     DefaultCloudSvr = "cn"
-    TokenExpireRatio = 0.7
+    TokenExpireRatio = 0.99
 )
 ```
 

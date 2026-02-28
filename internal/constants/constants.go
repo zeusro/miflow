@@ -8,7 +8,7 @@ const (
 	OAuth2APIHost    = "ha.api.io.mi.com"
 	OAuth2TokenPath  = "/app/v2/ha/oauth/get_token"
 	DefaultCloudSvr  = "cn"
-	TokenExpireRatio = 0.7
+	TokenExpireRatio = 0.99
 )
 
 // 默认 OAuth 回调地址（需与 web.addr 端口一致）
