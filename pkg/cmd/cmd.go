@@ -3,15 +3,19 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/internal/device"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miiocommand"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
+	"github.com/zeusro/miflow/internal/nlu"
+	"github.com/zeusro/miflow/internal/ollama"
 	"github.com/zeusro/miflow/pkg/cmd/mina"
 	"github.com/zeusro/miflow/pkg/cmd/util"
 	"github.com/zeusro/miflow/pkg/i18n"
@@ -26,6 +30,7 @@ func Usage() {
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.first_run", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.device", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.device_required", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.nlu", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.mina", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.miio", nil))
 	fmt.Fprint(os.Stderr, miiocommand.Help("", prefix, lang))
@@ -69,6 +74,28 @@ func Run(args []string) {
 	}
 
 	did := cfg.DefaultDID
+	if cmd == "ask" || cmd == "nlu" {
+		if !cfg.Ollama.Enabled {
+			fmt.Fprintln(os.Stderr, i18n.T(i18n.DefaultLang(), "nlu.not_enabled", nil))
+			os.Exit(1)
+		}
+		if cfg.Ollama.Model == "" || cfg.Ollama.Host == "" {
+			fmt.Fprintln(os.Stderr, i18n.T(i18n.DefaultLang(), "nlu.misconfigured", nil))
+			os.Exit(1)
+		}
+		api := device.NewAPI(ioSvc)
+		client := ollama.NewClient(cfg.Ollama.Host, cfg.Ollama.Model, 0)
+		svc := nlu.NewService(api, client)
+		text := strings.Join(args[1:], " ")
+		res, err := svc.Execute(context.Background(), text)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		util.PrintResult(res)
+		return
+	}
+
 	minaLikes := map[string]bool{
 		"message": true, "play": true, "mina": true, "pause": true, "stop": true,
 		"loop": true, "play_list": true, "suno": true, "suno_random": true,

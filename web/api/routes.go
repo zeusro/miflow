@@ -67,6 +67,9 @@ func RegisterRoutes(s *ghttp.Server, a *web.App) {
 		group.PATCH("/{id}/control", func(r *ghttp.Request) { DeviceControlPatch(a, r) })
 		group.POST("/{id}/control", func(r *ghttp.Request) { DeviceControl(a, r) })
 	})
+	s.Group("/api/nlu", func(group *ghttp.RouterGroup) {
+		group.POST("/control", func(r *ghttp.Request) { NLUControl(a, r) })
+	})
 	s.Group("/api/workflows", func(group *ghttp.RouterGroup) {
 		group.GET("/", func(r *ghttp.Request) { WorkflowsList(a, r) })
 		group.GET("/{id}", func(r *ghttp.Request) { WorkflowGet(a, r) })

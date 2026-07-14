@@ -52,3 +52,12 @@ miio:
   # specs_cache_path: ""
   # OAuth 回调端口
   callback_port: 8123
+
+# Ollama 本地大模型（自然语言控制 IoT 设备）
+ollama:
+  enabled: false
+  host: "http://localhost:11434"
+  model: "qwen2.5"
+  timeout_seconds: 60
+  # 可选：自定义 system prompt，留空使用内置提示词
+  # system_prompt: ""

@@ -6,9 +6,10 @@ miflow 的命令行入口与 HTTP 服务，按功能分为核心命令与工具�
 
 ### m
 
-小米云服务 CLI（OAuth 2.0），整合 MiIO/MIoT 设备控制与 Mina 小爱音箱。
+小米云服务 CLI（OAuth 2.0），整合 MiIO/MIoT 设备控制、Mina 小爱音箱与自然语言控制（Ollama）。
 
 - **认证**：`m login` 完成 OAuth 授权，token 存于 `~/.mi.token`
+- **自然语言**：`ask <text>`（需配置 Ollama）
 - **Mina**：`mina`、`message`、`play`、`pause`、`loop`、`play_list`、`suno` 等
 - **MiIO/MIoT**：`list`、`spec`、`spec_all`、`decode`、属性读写、动作调用、原始 `/uri` 调用
 

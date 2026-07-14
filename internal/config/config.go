@@ -66,6 +66,18 @@ type Config struct {
 
 	// MiIO 相关
 	MiIO MiIOConfig `yaml:"miio"`
+
+	// Ollama 自然语言控制
+	Ollama OllamaConfig `yaml:"ollama"`
+}
+
+// OllamaConfig Ollama 本地大模型配置，用于自然语言控制 IoT 设备。
+type OllamaConfig struct {
+	Enabled        bool   `yaml:"enabled"`
+	Host           string `yaml:"host"`
+	Model          string `yaml:"model"`
+	TimeoutSeconds int    `yaml:"timeout_seconds"`
+	SystemPrompt   string `yaml:"system_prompt"`
 }
 
 // OAuthConfig 小米 OAuth 2.0 配置。
@@ -167,6 +179,13 @@ func defaultConfig() *Config {
 			SpecsCachePath: "",
 			CallbackPort:   constants.DefaultCallbackPort,
 		},
+		Ollama: OllamaConfig{
+			Enabled:        false,
+			Host:           "http://localhost:11434",
+			Model:          "qwen2.5",
+			TimeoutSeconds: 60,
+			SystemPrompt:   "",
+		},
 	}
 }
 
@@ -187,6 +206,7 @@ func mergeConfig(dst, src *Config) {
 	mergeWeb(&dst.Web, &src.Web)
 	mergeMp3(&dst.Mp3, &src.Mp3)
 	mergeMiIO(&dst.MiIO, &src.MiIO)
+	mergeOllama(&dst.Ollama, &src.Ollama)
 }
 
 // mergeOAuth 合并 OAuth 配置。
@@ -264,6 +284,25 @@ func mergeMiIO(dst, src *MiIOConfig) {
 	}
 }
 
+// mergeOllama 合并 Ollama 配置。
+func mergeOllama(dst, src *OllamaConfig) {
+	if src.Enabled {
+		dst.Enabled = true
+	}
+	if src.Host != "" {
+		dst.Host = src.Host
+	}
+	if src.Model != "" {
+		dst.Model = src.Model
+	}
+	if src.TimeoutSeconds > 0 {
+		dst.TimeoutSeconds = src.TimeoutSeconds
+	}
+	if src.SystemPrompt != "" {
+		dst.SystemPrompt = src.SystemPrompt
+	}
+}
+
 // expandPath 将 ~ 展开为用户主目录。
 func expandPath(p string) string {
 	if p == "" || p[0] != '~' {
@@ -301,5 +340,14 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("MI_TOKEN_PATH"); v != "" {
 		cfg.TokenPath = v
+	}
+	if v := os.Getenv("MI_OLLAMA_ENABLED"); v == "1" || v == "true" {
+		cfg.Ollama.Enabled = true
+	}
+	if v := os.Getenv("MI_OLLAMA_HOST"); v != "" {
+		cfg.Ollama.Host = v
+	}
+	if v := os.Getenv("MI_OLLAMA_MODEL"); v != "" {
+		cfg.Ollama.Model = v
 	}
 }

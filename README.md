@@ -24,6 +24,10 @@
   查: `m 1,1-2,2-1`  
   设: `m 2=#60,2-2=#false`
 
+- **自然语言控制**（需配置 Ollama）  
+  `m ask 打开客厅灯`  
+  `m ask 把卧室灯亮度调到 50`
+
 - **MIoT 动作**  
   `m 5 你好`  
   `m 5-4 查询天气 #1`
@@ -59,6 +63,26 @@
 export MI_DID=<设备ID或名称>   # 部分命令需要，也可在配置 default_did
 export MI_DEBUG=1              # 可选，打印 HTTP 请求/响应（调试用），或配置 debug: true
 ```
+
+### 自然语言控制（Ollama）
+
+配置 Ollama 后，可使用自然语言控制设备：
+
+```yaml
+ollama:
+  enabled: true
+  host: "http://localhost:11434"
+  model: "qwen2.5"
+  timeout_seconds: 60
+```
+
+```bash
+m ask 打开客厅灯
+m ask 查询卧室温度
+m ask 把音箱音量调到 30
+```
+
+对应 Web API：`POST /api/nlu/control`，请求体 `{"text":"打开客厅灯"}`。
 
 ## Why no Home Assistant?
 

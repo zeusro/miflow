@@ -1,16 +1,20 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/zeusro/miflow/internal/config"
+	"github.com/zeusro/miflow/internal/device"
 	"github.com/zeusro/miflow/internal/miaccount"
 	"github.com/zeusro/miflow/internal/miiocommand"
 	"github.com/zeusro/miflow/internal/miioservice"
 	"github.com/zeusro/miflow/internal/minaservice"
+	"github.com/zeusro/miflow/internal/nlu"
+	"github.com/zeusro/miflow/internal/ollama"
 	"github.com/zeusro/miflow/pkg/cmd/mina"
 	"github.com/zeusro/miflow/pkg/cmd/util"
 	"github.com/zeusro/miflow/pkg/i18n"
@@ -68,6 +72,25 @@ func runM(cmd *cobra.Command, args []string) error {
 	}
 
 	did := cfg.DefaultDID
+	if sub == "ask" || sub == "nlu" {
+		if !cfg.Ollama.Enabled {
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "nlu.not_enabled", nil))
+		}
+		if cfg.Ollama.Model == "" || cfg.Ollama.Host == "" {
+			return fmt.Errorf("%s", i18n.T(i18n.DefaultLang(), "nlu.misconfigured", nil))
+		}
+		api := device.NewAPI(ioSvc)
+		client := ollama.NewClient(cfg.Ollama.Host, cfg.Ollama.Model, 0)
+		svc := nlu.NewService(api, client)
+		text := strings.Join(args[1:], " ")
+		res, err := svc.Execute(context.Background(), text)
+		if err != nil {
+			return err
+		}
+		util.PrintResult(res)
+		return nil
+	}
+
 	if minaLikes[sub] {
 		mina.Mina{
 			MinaSvc: minaservice.NewWithMinaAPI(ioSvc, token, tokenPath),
@@ -94,6 +117,7 @@ func printUsage() {
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.first_run", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.device", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.device_required", nil))
+	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.nlu", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.mina", nil))
 	fmt.Fprint(os.Stderr, i18n.T(lang, "cli.usage.miio", nil))
 	fmt.Fprint(os.Stderr, miiocommand.Help("", prefix, lang))
